@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B4A5C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="FlexoCalculator">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,500;0,600;0,700;0,800;0,900;1,600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>FlexoCalculator</title>
+<style>
+:root{
+  --ink:#1A1A18;--cyan:#0A7EA6;--cyan-deep:#075E79;--amber:#C07A26;--magenta:#C41E6B;
+  --p:var(--cyan);
+  --bg:#F1EEE7;--card:#FDFCF9;--text:#1A1A18;--muted:#6B6B63;
+  --line:#DDD8CB;--line-strong:#B9B3A1;
+  --danger:#B23A2E;--ok:#1C7A50;
+  --input:#FFFFFF;--radius:10px;--radius-sm:7px;
+  --shadow:0 1px 2px rgba(26,26,24,.04),0 10px 24px rgba(26,26,24,.05);
+  --font:'Archivo',-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+body.dark{
+  --ink:#EDEAE2;--cyan:#4DB2D6;--cyan-deep:#8FD2E9;--amber:#DDA24E;--magenta:#E54F93;
+  --bg:#15140F;--card:#1E1C16;--text:#EDEAE2;--muted:#9C978A;
+  --line:#312E25;--line-strong:#454134;--input:#242118;--shadow:none;
+}
+::selection{background:color-mix(in srgb,var(--cyan) 30%,transparent)}
+.app{max-width:760px;margin:auto;padding:env(safe-area-inset-top) 16px calc(40px + env(safe-area-inset-bottom))}
+
+/* ---------- Calibration bar ---------- */
+.calbar{display:flex;height:5px;border-radius:3px;overflow:hidden;margin:10px 2px 0}
+.calbar span{flex:1}
+.calbar span:nth-child(1){background:#1A1A18}
+.calbar span:nth-child(2){background:#00AEEF}
+.calbar span:nth-child(3){background:var(--magenta)}
+.calbar span:nth-child(4){background:#FFD400}
+.calbar span:nth-child(5){background:var(--amber)}
+body.dark .calbar span:nth-child(1){background:#4A463A}
+
+/* ---------- Header ---------- */
+.header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:22px 2px 12px}
+.brandRow{display:flex;align-items:center;gap:12px}
+.brandMark{width:40px;height:40px;flex:0 0 auto;color:var(--ink)}
+body.dark .brandMark{color:var(--cyan)}
+.brand{font-size:21px;font-weight:800;letter-spacing:-.3px;line-height:1.1}
+.sub{font-size:12.5px;color:var(--muted);margin-top:3px;font-weight:500;font-family:var(--font-mono)}
+.iconbtn{border:1px solid var(--line);background:var(--card);color:var(--text);width:42px;height:42px;border-radius:var(--radius-sm);font-size:18px;cursor:pointer;box-shadow:var(--shadow)}
+
+/* ---------- Nav ---------- */
+.appnav{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin:0 0 16px;padding:3px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);position:sticky;top:8px;z-index:20;box-shadow:var(--shadow)}
+.navbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:54px;border:0;border-radius:7px;background:transparent;color:var(--muted);font-weight:700;font-size:11px;cursor:pointer;padding:0 2px;letter-spacing:.1px}
+.navbtn svg{width:18px;height:18px}
+.navbtn.active{background:var(--ink);color:var(--card)}
+body.dark .navbtn.active{background:var(--cyan);color:#0A1216}
+
+.subnav{display:flex;gap:5px;margin:0 0 12px;padding:3px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-sm)}
+.subnavbtn{flex:1;height:38px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-weight:700;font-size:13px;cursor:pointer}
+.subnavbtn.active{background:var(--ink);color:var(--card)}
+body.dark .subnavbtn.active{background:var(--cyan);color:#0A1216}
+
+/* ---------- Cards ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--line-strong);border-radius:var(--radius);padding:18px;margin:11px 0;box-shadow:var(--shadow)}
+.card.spine-calc{border-left-color:var(--cyan)}
+.card.spine-materials{border-left-color:var(--amber)}
+.card.spine-factory{border-left-color:var(--amber)}
+.card.spine-orders{border-left-color:var(--ink)}
+body.dark .card.spine-orders{border-left-color:var(--cyan-deep)}
+.card.spine-production{border-left-color:var(--magenta)}
+.card.spine-reports{border-left-color:var(--cyan-deep)}
+body.dark .card.spine-reports{border-left-color:var(--amber)}
+
+/* ---------- Client report cards ---------- */
+.clientReport{border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin:11px 0;background:var(--card);box-shadow:var(--shadow)}
+.clientReportHead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.clientReportName{font-weight:800;font-size:15.5px}
+.clientReportCount{font-size:12px;color:var(--muted)}
+.clientOrderRow{border-top:1px solid var(--line);padding:9px 0;font-size:13px}
+.clientOrderRow .orow1{display:flex;justify-content:space-between;gap:10px;font-weight:700}
+.clientOrderRow .orow2{display:flex;justify-content:space-between;gap:10px;color:var(--muted);margin-top:3px;font-family:var(--font-mono);font-size:12.5px}
+.waste-high{color:var(--danger)}
+h2{font-size:16px;margin:0 0 4px;font-weight:800;letter-spacing:-.1px}
+.section-desc{font-size:13px;color:var(--muted);margin:0 0 15px;line-height:1.5}
+.section-desc a{color:var(--cyan);font-weight:700;text-decoration:none}
+.section-desc a:hover{text-decoration:underline}
+
+/* ---------- Forms ---------- */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{margin-bottom:12px}.field:last-child{margin-bottom:0}
+label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:0 0 6px;letter-spacing:0}
+input,select{width:100%;height:46px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--input);color:var(--text);padding:0 12px;font-size:15.5px;outline:none;font-family:var(--font)}
+input:focus,select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 16%,transparent)}
+input::placeholder{color:color-mix(in srgb,var(--muted) 70%,transparent)}
+
+.layer{border:1px solid var(--line);border-radius:var(--radius-sm);padding:13px;margin-top:10px;background:color-mix(in srgb,var(--line) 20%,transparent)}
+.layerhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.layername{font-weight:800;font-size:14px}
+.gsm{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:600;font-family:var(--font-mono)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.switch{position:relative;width:46px;height:27px;flex:0 0 auto}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:var(--line-strong);border-radius:30px;cursor:pointer;transition:.18s}
+.slider:before{content:"";position:absolute;width:21px;height:21px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.18s}
+.switch input:checked+.slider{background:var(--cyan)}
+.switch input:checked+.slider:before{transform:translateX(19px)}
+.setting{padding:10px 0;border-bottom:1px solid var(--line)}.setting:last-child{border-bottom:0;padding-bottom:0}
+.hint,.note{font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:6px}
+.hidden{display:none!important}
+
+/* ---------- Buttons ---------- */
+.calculate{width:100%;height:52px;border:0;border-radius:var(--radius-sm);background:var(--ink);color:var(--card);font-size:15.5px;font-weight:800;cursor:pointer;margin-top:4px;letter-spacing:.1px}
+body.dark .calculate{background:var(--cyan);color:#0A1216}
+.savebtn{height:42px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:var(--radius-sm);padding:0 14px;font-weight:700;font-size:13.5px;cursor:pointer}
+.savebtn:hover{border-color:var(--line-strong)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.dangerbtn{border:1px solid color-mix(in srgb,var(--danger) 40%,var(--line));background:transparent;color:var(--danger);height:38px;border-radius:var(--radius-sm);padding:0 12px;font-weight:700;font-size:13px;cursor:pointer}
+
+/* ---------- Ledger-style results ---------- */
+.result{margin-top:16px}
+.resultTop{display:flex;border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:4px}
+.metric{flex:1;padding:13px 14px;border-right:1px solid var(--line)}
+.metric:last-child{border-right:0}
+.metric small{display:block;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:0}
+.metric strong{display:block;font-size:20px;margin-top:5px;font-variant-numeric:tabular-nums;font-weight:700;font-family:var(--font-mono)}
+
+.table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:14px}
+.table th,.table td{text-align:left;padding:9px 4px;border-bottom:1px solid var(--line)}
+.table td:last-child,.table th:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.table th{color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+.table td{font-family:var(--font-mono)}
+.table td:first-child{font-family:var(--font)}
+.table .total td{font-weight:800;border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);padding-top:11px;padding-bottom:11px}
+body.dark .table .total td{border-color:var(--cyan)}
+.error{color:var(--danger);font-weight:700}
+.ok{color:var(--ok);font-weight:800}
+.table td.rowactions{text-align:right}
+.deleterow{border:1px solid color-mix(in srgb,var(--danger) 35%,var(--line));background:transparent;color:var(--danger);width:28px;height:28px;border-radius:6px;font-size:14px;line-height:1;cursor:pointer}
+.deleterow:disabled{opacity:.25;cursor:default;border-color:var(--line);color:var(--muted)}
+.addMaterial{border-top:1px dashed var(--line-strong);margin-top:16px;padding-top:14px}
+.addMaterialTitle{font-weight:700;font-size:13px;margin-bottom:10px}
+.addMaterial .grid{grid-template-columns:1.4fr 1fr 1fr}
+.addMaterial .savebtn{margin-top:2px}
+@media(max-width:480px){.addMaterial .grid{grid-template-columns:1fr}}
+
+.cost-result{margin-top:4px;border-top:1px solid var(--line)}
+.cost-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line)}
+.cost-card:last-child{border-bottom:0}
+.cost-card small{color:var(--muted);font-size:13px;font-weight:600;letter-spacing:0;text-transform:none}
+.cost-card strong{font-size:15px;font-variant-numeric:tabular-nums;font-weight:700;font-family:var(--font-mono)}
+.primary-result{border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);margin-top:2px;padding-top:13px;padding-bottom:13px}
+body.dark .primary-result{border-color:var(--cyan)}
+.primary-result small{font-weight:800;color:var(--text)}
+.primary-result strong{font-size:19px;font-weight:900}
+
+/* ---------- Orders ---------- */
+.orderItem{position:relative;border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px 16px 16px 20px;margin-top:14px;background:var(--card)}
+.orderItem:before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:0;border-left:2px dashed var(--line-strong)}
+.orderHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.orderTitle{font-weight:800;font-size:14.5px}
+.orderTitle .dot{color:var(--muted);margin:0 7px;font-weight:400}
+.orderTitle .orderCust{color:var(--cyan-deep)}
+body.dark .orderTitle .orderCust{color:var(--cyan)}
+.orderMeta{font-size:12px;color:var(--muted);margin-top:3px}
+.orderGrid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.orderStat{padding:6px 0}
+.orderStat small{display:block;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:0}
+.orderStat b{display:block;margin-top:3px;font-size:14px;font-variant-numeric:tabular-nums;font-family:var(--font-mono)}
+
+.page{display:none}
+.page.active{display:block}
+
+@media(max-width:480px){
+  .grid{grid-template-columns:1fr}
+  .brand{font-size:18px}
+  .card{padding:15px}
+  .orderGrid{grid-template-columns:1fr}
+  .navbtn{font-size:10px}
+  .resultTop{flex-direction:column}
+  .metric{border-right:0;border-bottom:1px solid var(--line)}
+  .metric:last-child{border-bottom:0}
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div class="app">
+<header class="header">
+  <div class="brandRow">
+    <svg class="brandMark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+      <circle cx="20" cy="20" r="18.5" stroke="currentColor" stroke-width="1.6"/>
+      <circle cx="20" cy="20" r="6" stroke="currentColor" stroke-width="1.6"/>
+      <line x1="20" y1="2" x2="20" y2="11" stroke="currentColor" stroke-width="1.6"/>
+      <line x1="20" y1="29" x2="20" y2="38" stroke="currentColor" stroke-width="1.6"/>
+      <line x1="2" y1="20" x2="11" y2="20" stroke="currentColor" stroke-width="1.6"/>
+      <line x1="29" y1="20" x2="38" y2="20" stroke="currentColor" stroke-width="1.6"/>
+    </svg>
+    <div><div class="brand">FlexoCalculator</div><div class="sub">Production costing for flexible packaging</div></div>
+  </div>
+  <button class="iconbtn" id="themeBtn" aria-label="Toggle theme">☀️</button>
+</header>
+<div class="calbar" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+
+<nav class="appnav" aria-label="Main navigation">
+  <button class="navbtn active" data-page="calculatorPage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="17" height="17" rx="1.5"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/><line x1="8.3" y1="9.5" x2="8.3" y2="20.5"/><line x1="14" y1="13.2" x2="17.3" y2="13.2"/><line x1="14" y1="16.6" x2="17.3" y2="16.6"/></svg>Calculator</button>
+  <button class="navbtn" data-page="materialsPage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12,3 21,8 12,13 3,8"/><polyline points="3,13 12,18 21,13"/><polyline points="3,18 12,23 21,18" stroke-width="1.5" opacity=".55"/></svg>Materials</button>
+  <button class="navbtn" data-page="factoryPage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21 L3 11 L8 14 L8 8 L13 11 L13 5 L21 10 L21 21 Z"/></svg>Factory</button>
+  <button class="navbtn" data-page="ordersPage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 3.5 H20 V20.5 L17.5 18.5 L15 20.5 L12.5 18.5 L10 20.5 L7.5 18.5 L5 20.5 L4 20.5 Z"/><line x1="7.5" y1="9" x2="16.5" y2="9"/><line x1="7.5" y1="13" x2="16.5" y2="13"/></svg>Orders</button>
+  <button class="navbtn" data-page="productionPage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="4.3"/><circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none"/><path d="M11 11 L17.5 17.5"/><path d="M15.5 15.5 L20.5 15.5 L20.5 20.5 L15.5 20.5 Z"/></svg>Production</button>
+  <button class="navbtn" data-page="reportsPage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 20.5 V3.5 H15.5 L19 7 V20.5 Z"/><path d="M15.5 3.5 V7 H19"/><polyline points="8,16.5 10.5,12.5 13,14.5 16,9.5" stroke-width="1.6"/></svg>Reports</button>
+</nav>
+
+
+<div id="calculatorPage" class="page active">
+<section class="card spine-calc">
+  <h2>1. Structure</h2>
+  <div class="field">
+    <label>Structure</label>
+    <select id="structure">
+      <option value="1">Mono — 1 layer</option>
+      <option value="2">Duplex — 2 layers</option>
+      <option value="3">Triplex — 3 layers</option>
+    </select>
+  </div>
+  <div id="layers"></div>
+</section>
+
+<section class="card spine-calc">
+  <h2>2. Printing & lamination</h2>
+  <div class="setting row">
+    <div><b>Printed</b><div class="hint">Adds the ink GSM below.</div></div>
+    <label class="switch"><input type="checkbox" id="printed"><span class="slider"></span></label>
+  </div>
+  <div class="grid" style="margin-top:10px">
+    <div class="field"><label>Ink GSM (g/m²)</label><input id="inkGsm" type="number" min="0" step="0.1" value="3"></div>
+    <div class="field"><label>Glue / interface (g/m²)</label><input id="glueGsm" type="number" min="0" step="0.1" value="2"><div class="hint">Applied once per lamination interface.</div></div>
+  </div>
+</section>
+
+<section class="card spine-calc">
+  <h2>3. Calculation</h2>
+  <div class="grid">
+    <div class="field"><label>Film width (mm)</label><input id="width" type="number" min="0.001" step="0.1" inputmode="decimal" placeholder="e.g. 400"><div class="hint">Converted automatically to metres.</div></div>
+    <div class="field"><label>Calculate from</label><select id="inputType"><option value="weight">Weight (kg)</option><option value="length">Length (m)</option><option value="diameter">Roll diameter (mm)</option></select></div>
+  </div>
+  <div id="normalInput" class="field"><label id="valueLabel">Weight (kg)</label><input id="inputValue" type="number" min="0.0001" step="0.01" inputmode="decimal" placeholder="Enter value"></div>
+  <div id="diameterInputs" class="grid hidden">
+    <div class="field"><label>Outer diameter (mm)</label><input id="outerDiameter" type="number" min="0" step="0.1" inputmode="decimal" placeholder="e.g. 600"></div>
+    <div class="field"><label>Core diameter (mm)</label><input id="coreDiameter" type="number" min="0" step="0.1" inputmode="decimal" value="76"></div>
+  </div>
+  <button class="calculate" id="calculate">Calculate material</button>
+  <div id="result" class="result hidden"></div>
+</section>
+
+<section class="card spine-calc">
+  <h2>4. Production Cost</h2>
+  <div class="section-desc">Calculated automatically from the material above, using your saved <a href="#" id="goFactoryLink">Factory Cost Settings</a>.</div>
+  <div id="costResult" class="result hidden"></div>
+  <div id="costEmptyNote" class="note">No factory costs saved yet — set them once in <a href="#" id="goFactoryLink2">Factory Cost Settings</a> and every calculation will cost itself automatically.</div>
+</section>
+
+</div>
+
+<div id="materialsPage" class="page">
+<section class="card spine-materials">
+  <h2>Material Database</h2>
+  <div class="section-desc">Set your standard film densities and purchase prices once. The calculator will use them automatically.</div>
+
+  <div class="actions" style="margin-bottom:10px">
+    <button class="savebtn" id="saveMaterials">Save materials</button>
+    <button class="savebtn" id="resetMaterials">Reset defaults</button>
+  </div>
+
+  <table class="table" id="materialsTable">
+    <thead>
+      <tr><th>Material</th><th>Density</th><th>Price / kg</th><th></th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <div class="note">Density is used for GSM calculation. Prices are saved locally on this device.</div>
+
+  <div class="addMaterial">
+    <div class="addMaterialTitle">Add a material</div>
+    <div class="grid">
+      <div class="field"><label>Name</label><input id="newMaterialName" type="text" placeholder="e.g. BOPP 2-side treated"></div>
+      <div class="field"><label>Density (g/cm³)</label><input id="newMaterialDensity" type="number" min="0" step="0.01" placeholder="e.g. 0.91"></div>
+      <div class="field"><label>Price / kg</label><input id="newMaterialPrice" type="number" min="0" step="0.01" placeholder="0"></div>
+    </div>
+    <button class="savebtn" id="addMaterialBtn">+ Add material</button>
+  </div>
+</section>
+
+<section class="card spine-materials">
+  <h2>Ink & Glue Pricing</h2>
+  <div class="section-desc">Set the purchase price for ink and lamination glue here — used automatically for the INK and GLUE lines in every cost calculation.</div>
+  <table class="table" id="inkGlueTable">
+    <thead><tr><th>Item</th><th>Price / kg</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</section>
+</div>
+
+<div id="factoryPage" class="page">
+<section class="card spine-factory">
+  <h2>Factory Cost Settings</h2>
+  <div class="section-desc">Enter your real factory numbers once. They're saved automatically on this device, and from then on every material calculation costs itself out instantly — no re-entering anything.</div>
+
+  <div class="grid">
+    <div class="field"><label>Waste (%)</label><input id="waste" type="number" min="0" step="0.1" value="5"></div>
+    <div class="field"><label>Target margin (%)</label><input id="targetMargin" type="number" min="0" max="95" step="0.1" value="0"><div class="hint">The selling price/kg is calculated automatically from your cost + this margin.</div></div>
+    <div class="field"><label>Currency</label><input id="currency" type="text" maxlength="5" value="DA" placeholder="DA / € / $"></div>
+  </div>
+  <div class="note">Ink and glue prices are set on the <b>Materials</b> tab, alongside your film prices. Printing and lamination costs are covered automatically by Electricity, Rent & Salary below — running the press already includes them.</div>
+</section>
+
+<section class="card spine-factory">
+  <h2>Electricity, Rent & Salary</h2>
+  <div class="section-desc">Your real fixed charges — the calculator spreads them over your production automatically, so every order gets a real overhead cost per kg without you doing any math.</div>
+
+  <div class="grid">
+    <div class="field"><label>Electricity cost / hour</label><input id="elecPerHour" type="number" min="0" step="0.01" value="0"></div>
+    <div class="field"><label>Press output (kg / hour)</label><input id="pressOutput" type="number" min="0" step="0.01" value="0"><div class="hint">How many kg your press/line produces per hour on average. Used to estimate how long each order takes.</div></div>
+    <div class="field"><label>Working hours / month</label><input id="workingHoursMonth" type="number" min="0" step="1" value="0"><div class="hint">Total hours the factory runs per month. Used to spread rent, salary & other charges per hour.</div></div>
+    <div class="field"><label>Rent / month</label><input id="rentMonth" type="number" min="0" step="0.01" value="0" placeholder="0 if none"></div>
+    <div class="field"><label>Salary / month</label><input id="salaryMonth" type="number" min="0" step="0.01" value="0" placeholder="Total staff salaries"></div>
+    <div class="field"><label>Other charges / month</label><input id="otherChargesMonth" type="number" min="0" step="0.01" value="0" placeholder="0 if none"></div>
+  </div>
+  <div class="note">Leave any field at 0 if it doesn't apply to you — it's simply left out of the calculation.</div>
+</section>
+
+<section class="card spine-factory">
+  <div id="factorySavedNote" class="note ok hidden">Saved — this is used automatically for every calculation now.</div>
+  <div class="actions">
+    <button class="savebtn" id="savePrices">Save now</button>
+    <button class="savebtn" id="resetFactory">Reset to defaults</button>
+  </div>
+  <div class="note" style="margin-top:10px">Open the <b>Calculator</b> tab to see the cost of your current material update live as you type here.</div>
+</section>
+</div>
+
+<div id="ordersPage" class="page">
+<div class="subnav" aria-label="Orders navigation">
+  <button class="subnavbtn active" id="newOrderBtn" data-orderview="form">+ New order</button>
+  <button class="subnavbtn" id="orderListBtn" data-orderview="list">Order list</button>
+</div>
+
+<section class="card spine-orders" id="orderFormCard">
+  <h2>Customer Orders</h2>
+  <div class="section-desc">Create and save production orders using the calculation you just made.</div>
+
+  <div class="grid">
+    <div class="field">
+      <label>Order number</label>
+      <input id="orderNumber" type="text" placeholder="e.g. 2026-001">
+    </div>
+    <div class="field">
+      <label>Date</label>
+      <input id="orderDate" type="date">
+    </div>
+    <div class="field">
+      <label>Customer</label>
+      <input id="customerName" type="text" placeholder="Customer name">
+    </div>
+    <div class="field">
+      <label>Product</label>
+      <input id="productName" type="text" placeholder="e.g. Chips 500 g">
+    </div>
+    <div class="field">
+      <label>Reference / SKU</label>
+      <input id="productRef" type="text" placeholder="Optional">
+    </div>
+    <div class="field">
+      <label>Width (mm)</label>
+      <input id="orderWidth" type="number" min="0" step="0.1" placeholder="e.g. 400">
+    </div>
+    <div class="field">
+      <label>Material structure</label>
+      <input id="orderStructureInput" type="text" placeholder="e.g. OPP 20µ / PET 12µ">
+    </div>
+    <div class="field">
+      <label>Order quantity (kg)</label>
+      <input id="orderQuantity" type="number" min="0" step="0.01" placeholder="e.g. 1000">
+    </div>
+    <div class="field">
+      <label>Order quantity (m)</label>
+      <input id="orderQuantityM" type="number" min="0" step="0.01" placeholder="e.g. 5000">
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <input id="orderNotes" type="text" placeholder="Optional production notes">
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="calculate" id="saveOrder" style="width:auto;padding:0 18px">Save order</button>
+    <button class="savebtn" id="useCalculation">Use current calculation</button>
+    <button class="savebtn" id="clearOrder">Clear form</button>
+  </div>
+
+  <div id="orderMessage" class="note hidden"></div>
+</section>
+
+<section class="card spine-orders hidden" id="orderListCard">
+  <h2>Saved Orders</h2>
+  <div class="section-desc">Orders are stored locally in this browser. Export as PDF downloads a ready-to-share PDF file of your saved orders.</div>
+  <div class="actions">
+    <button class="savebtn" id="exportOrders">Export as PDF</button>
+    <button class="savebtn" id="clearOrders">Delete all orders</button>
+  </div>
+  <div id="ordersList"></div>
+</section>
+</div>
+
+<div id="productionPage" class="page">
+<section class="card spine-production">
+  <h2>Production Tracking</h2>
+  <div class="section-desc">Record what actually ran on the press for each order — printed, laminated and slit meters, finished weight, and printing waste — so you can see it against the plan.</div>
+
+  <div class="field">
+    <label>Order</label>
+    <select id="productionOrderSelect"><option value="">Select a saved order…</option></select>
+  </div>
+  <div id="productionEmptyNote" class="note">Save an order on the Orders tab first, then come back here to log its real production.</div>
+
+  <div id="productionForm" class="hidden">
+    <div class="note" id="productionOrderSummary"></div>
+    <div class="grid">
+      <div class="field"><label>Printed (m)</label><input id="prodPrintedM" type="number" min="0" step="0.01" placeholder="e.g. 5100"></div>
+      <div class="field"><label>Laminated (m)</label><input id="prodLaminatedM" type="number" min="0" step="0.01" placeholder="If more than one layer"><div class="hint" id="prodLamHint">Only relevant for duplex/triplex structures.</div></div>
+      <div class="field"><label>Slit (m)</label><input id="prodSlittedM" type="number" min="0" step="0.01" placeholder="Final good meters after slitting"></div>
+      <div class="field"><label>Printing waste (m)</label><input id="prodPrintWasteM" type="number" min="0" step="0.01" placeholder="Waste until printing validation"></div>
+      <div class="field"><label>Actual finished weight (kg)</label><input id="prodActualWeight" type="number" min="0" step="0.01" placeholder="e.g. 985"></div>
+    </div>
+    <div class="actions">
+      <button class="calculate" id="saveProduction" style="width:auto;padding:0 18px">Save production</button>
+    </div>
+    <div id="productionMessage" class="note hidden"></div>
+    <div id="productionStats" class="result hidden"></div>
+  </div>
+</section>
+
+<section class="card spine-production">
+  <h2>Logged Orders</h2>
+  <div class="section-desc">Orders with production recorded so far, most recent first.</div>
+  <div id="productionList"><div class="note">Nothing logged yet.</div></div>
+</section>
+</div>
+
+<div id="reportsPage" class="page">
+<section class="card spine-reports">
+  <h2>Client & Waste Reports</h2>
+  <div class="section-desc">Totals by client — orders, meters and weight produced — plus waste and its cost, per order and across everything.</div>
+  <div id="reportsEmpty" class="note">No saved orders yet — reports will appear once you save orders and log their production.</div>
+  <div id="reportsSummary" class="result hidden"></div>
+</section>
+<div id="clientReports"></div>
+</div>
+
+<div id="settingsPage" class="page">
+<section class="card">
+  <h2>Calculation basis</h2>
+  <div class="note">
+    Film GSM = thickness (µm) × density (g/cm³).<br>
+    Lamination glue is added once for each interface: Duplex = 1 interface, Triplex = 2.<br>
+    Printed film adds the entered ink GSM.<br>
+    Roll length from diameter uses the annulus formula and the total physical film thickness.<br>
+    Production costing applies the entered waste percentage to material, ink and glue consumption.
+  </div>
+</section>
+</div>
+</div>
+
+<script>
+const densities = {
+  "opp":0.91,"pet":1.39,"cpp":0.90,"pe":0.93,
+  "opp met":0.94,"pet met":1.40,"aluminium":2.70,"paper":1.20
+};
+let layers=[{type:"opp",thickness:""}];
+let lastCalc=null;
+let lastCostCalc=null;
+const $=id=>document.getElementById(id);
+const num=id=>parseFloat($(id).value);
+const money=v=>`${(Number(v)||0).toFixed(2)} ${($("currency").value||"DA").trim()}`;
+
+const defaultMaterials = {
+  "opp":      {name:"OPP", density:0.91, price:0},
+  "pet":      {name:"PET", density:1.39, price:0},
+  "cpp":      {name:"CPP", density:0.90, price:0},
+  "pe":       {name:"PE", density:0.93, price:0},
+  "opp met":  {name:"OPP-MET", density:0.94, price:0},
+  "pet met":  {name:"PET-MET", density:1.40, price:0},
+  "aluminium":{name:"ALUMINIUM", density:2.70, price:0},
+  "paper":    {name:"PAPER", density:1.20, price:0}
+};
+
+const extraCostMaterials = {
+  "ink":  {name:"INK", price:0},
+  "glue": {name:"GLUE / ADHESIVE", price:0}
+};
+
+function loadCustomMaterials(){
+  try{
+    const raw=localStorage.getItem("fc_custom_materials");
+    return raw ? JSON.parse(raw) : {};
+  }catch(e){ return {}; }
+}
+let customMaterials = loadCustomMaterials();
+function saveCustomMaterialsToStorage(){
+  localStorage.setItem("fc_custom_materials", JSON.stringify(customMaterials));
+}
+function allMaterials(){
+  return {...defaultMaterials, ...customMaterials};
+}
+function slugifyMaterialName(name){
+  return name.trim().toLowerCase().replace(/\s+/g," ");
+}
+function addMaterial(){
+  const nameInput=$("newMaterialName"), densityInput=$("newMaterialDensity"), priceInput=$("newMaterialPrice");
+  const name=nameInput.value.trim();
+  const density=parseFloat(densityInput.value);
+  const price=parseFloat(priceInput.value)||0;
+  if(!name)return alert("Enter a material name.");
+  if(!(density>0))return alert("Enter a density greater than 0 g/cm³.");
+  const key=slugifyMaterialName(name);
+  if(!key)return alert("Enter a material name.");
+  if(allMaterials()[key])return alert("A material with that name already exists.");
+  customMaterials[key]={name:name.toUpperCase(),density,price};
+  saveCustomMaterialsToStorage();
+  densities[key]=density;
+  localStorage.setItem("fc_price_"+key,String(price));
+  nameInput.value="";densityInput.value="";priceInput.value="";
+  renderMaterialDatabase();
+  renderLayers();
+  if(lastCalc)calculate();
+}
+function deleteMaterial(key){
+  if(!customMaterials[key])return;
+  if(!confirm(`Delete "${customMaterials[key].name}" from the material database? Any layer using it will reset to OPP.`))return;
+  delete customMaterials[key];
+  saveCustomMaterialsToStorage();
+  localStorage.removeItem("fc_density_"+key);
+  localStorage.removeItem("fc_price_"+key);
+  delete densities[key];
+  layers.forEach(l=>{ if(l.type===key) l.type="opp"; });
+  renderMaterialDatabase();
+  renderLayers();
+  if(lastCalc)calculate();
+}
+
+function getExtraPrice(key){
+  const saved=localStorage.getItem("fc_price_"+key);
+  return saved!==null ? parseFloat(saved)||0 : extraCostMaterials[key].price;
+}
+
+function renderInkGlueTable(){
+  const tbody=document.querySelector("#inkGlueTable tbody");
+  if(!tbody)return;
+  tbody.innerHTML=Object.entries(extraCostMaterials).map(([key,m])=>`
+    <tr>
+      <td><b>${m.name}</b></td>
+      <td><input data-extra-price="${key}" type="number" min="0" step="0.01" value="${getExtraPrice(key)}" style="height:40px"></td>
+    </tr>`).join("");
+  document.querySelectorAll("[data-extra-price]").forEach(e=>e.oninput=ev=>{
+    localStorage.setItem("fc_price_"+ev.target.dataset.extraPrice,ev.target.value);
+    if(lastCalc)calculateCost();
+  });
+}
+
+function getMaterialPrice(key){
+  const saved=localStorage.getItem("fc_price_"+key);
+  if(saved!==null)return saved;
+  const m=allMaterials()[key];
+  return m?m.price:0;
+}
+
+function renderMaterialDatabase(){
+  const tbody=document.querySelector("#materialsTable tbody");
+  if(!tbody)return;
+  tbody.innerHTML=Object.entries(allMaterials()).map(([key,m])=>`
+    <tr>
+      <td><b>${m.name}</b></td>
+      <td><input data-db-density="${key}" type="number" min="0" step="0.01" value="${getMaterialDensity(key)}" style="height:40px"></td>
+      <td><input data-db-price="${key}" type="number" min="0" step="0.01" value="${getMaterialPrice(key)}" style="height:40px"></td>
+      <td class="rowactions"><button class="deleterow" data-delete-material="${key}" ${customMaterials[key]?"":"disabled"} title="${customMaterials[key]?"Delete material":"Built-in materials can't be deleted"}" aria-label="Delete ${m.name}">✕</button></td>
+    </tr>`).join("");
+  document.querySelectorAll("[data-db-density]").forEach(e=>e.oninput=ev=>{
+    localStorage.setItem("fc_density_"+ev.target.dataset.dbDensity,ev.target.value);
+    densities[ev.target.dataset.dbDensity]=parseFloat(ev.target.value)||0;
+    renderLayers();
+    if(lastCalc)calculate();
+  });
+  document.querySelectorAll("[data-db-price]").forEach(e=>e.oninput=ev=>{
+    localStorage.setItem("fc_price_"+ev.target.dataset.dbPrice,ev.target.value);
+    renderLayers();
+    if(lastCalc)calculateCost();
+  });
+  document.querySelectorAll("[data-delete-material]").forEach(e=>e.onclick=ev=>{
+    deleteMaterial(ev.currentTarget.dataset.deleteMaterial);
+  });
+}
+
+function getMaterialDensity(key){
+  const saved=localStorage.getItem("fc_density_"+key);
+  if(saved!==null)return saved;
+  const m=allMaterials()[key];
+  return m?m.density:0;
+}
+
+function loadMaterialDensities(){
+  Object.entries(allMaterials()).forEach(([key,m])=>{
+    const saved=localStorage.getItem("fc_density_"+key);
+    densities[key]=saved!==null?(parseFloat(saved)||m.density):m.density;
+  });
+}
+
+function saveMaterials(){
+  Object.keys(allMaterials()).forEach(key=>{
+    const density=document.querySelector(`[data-db-density="${key}"]`)?.value;
+    const price=document.querySelector(`[data-db-price="${key}"]`)?.value;
+    if(density!==undefined)localStorage.setItem("fc_density_"+key,density);
+    if(price!==undefined)localStorage.setItem("fc_price_"+key,price);
+  });
+  Object.keys(extraCostMaterials).forEach(key=>{
+    const price=document.querySelector(`[data-extra-price="${key}"]`)?.value;
+    if(price!==undefined)localStorage.setItem("fc_price_"+key,price);
+  });
+  loadMaterialDensities();
+  renderMaterialDatabase();
+  renderInkGlueTable();
+  renderLayers();
+  if(lastCalc)calculate();
+  alert("Material database saved on this device.");
+}
+
+function resetMaterials(){
+  if(!confirm("Reset all built-in material densities and prices to their default values? Materials you've added will stay."))return;
+  Object.keys(defaultMaterials).forEach(key=>{
+    localStorage.removeItem("fc_density_"+key);
+    localStorage.removeItem("fc_price_"+key);
+    densities[key]=defaultMaterials[key].density;
+  });
+  Object.keys(extraCostMaterials).forEach(key=>{
+    localStorage.removeItem("fc_price_"+key);
+  });
+  renderMaterialDatabase();
+  renderInkGlueTable();
+  renderLayers();
+  if(lastCalc)calculate();
+}
+
+function renderLayers(){
+  const count=Number($("structure").value);
+  while(layers.length<count) layers.push({type:"opp",thickness:""});
+  layers=layers.slice(0,count);
+  $("layers").innerHTML=layers.map((l,i)=>`
+    <div class="layer">
+      <div class="layerhead"><span class="layername">Layer ${i+1}</span><span class="gsm" id="layerGsm${i}">0.00 g/m²</span></div>
+      <div class="grid">
+        <div class="field"><label>Film type</label><select data-type="${i}">
+          ${Object.entries(allMaterials()).map(([k,m])=>`<option value="${k}" ${k===l.type?"selected":""}>${m.name}</option>`).join("")}
+        </select></div>
+        <div class="field"><label>Thickness (µm)</label><input data-thickness="${i}" type="number" min="0" step="0.1" inputmode="decimal" value="${l.thickness}"></div>
+      </div>
+      <div class="hint">Price / kg: <b>${getMaterialPrice(l.type)} ${($("currency")?.value||"DA").trim()}</b> — set on the <a href="#" class="goMaterialsLink">Materials</a> tab.</div>
+    </div>`).join("");
+  document.querySelectorAll("[data-type]").forEach(e=>e.onchange=ev=>{
+    const i=+ev.target.dataset.type;
+    layers[i].type=ev.target.value;
+    renderLayers();
+    if(lastCalc) calculateCost();
+  });
+  document.querySelectorAll("[data-thickness]").forEach(e=>e.oninput=ev=>{layers[+ev.target.dataset.thickness].thickness=ev.target.value;updateLayerGsm();if(lastCalc)calculateCost();});
+  document.querySelectorAll(".goMaterialsLink").forEach(e=>e.onclick=ev=>{ev.preventDefault();showPage("materialsPage");});
+  updateLayerGsm();
+}
+function updateLayerGsm(){
+  layers.forEach((l,i)=>{const t=parseFloat(l.thickness)||0;$("layerGsm"+i).textContent=(t*densities[l.type]).toFixed(2)+" g/m²";});
+}
+function updateInputUI(){
+  const type=$("inputType").value, diameter=type==="diameter";
+  $("normalInput").classList.toggle("hidden",diameter);
+  $("diameterInputs").classList.toggle("hidden",!diameter);
+  if(type==="weight")$("valueLabel").textContent="Weight (kg)";
+  if(type==="length")$("valueLabel").textContent="Length (m)";
+}
+function calculate(){
+  const widthMm=num("width"), widthM=widthMm/1000, printed=$("printed").checked;
+  const ink=printed?(num("inkGsm")||0):0, gluePerInterface=Math.max(0,num("glueGsm")||0);
+  const interfaces=Math.max(0,layers.length-1);
+  if(!Number.isFinite(widthMm)||widthMm<=0)return showError("Please enter a valid film width in mm.");
+  if(layers.some(l=>!(parseFloat(l.thickness)>0)))return showError("Please enter a thickness greater than 0 µm for every layer.");
+  const layerRows=layers.map(l=>{const t=parseFloat(l.thickness);return{name:l.type.toUpperCase(),type:l.type,thickness:t,gsm:t*densities[l.type]};});
+  const filmGsm=layerRows.reduce((s,r)=>s+r.gsm,0), glue=interfaces*gluePerInterface, totalGsm=filmGsm+ink+glue;
+  const totalThicknessUm=layerRows.reduce((s,r)=>s+r.thickness,0);
+  if(!(totalGsm>0))return showError("Total GSM must be greater than 0.");
+  const type=$("inputType").value;let lengthM,totalWeightKg;
+  if(type==="weight"){
+    const weight=num("inputValue");if(!(weight>0))return showError("Please enter a weight greater than 0 kg.");
+    lengthM=(weight*1000)/(totalGsm*widthM);totalWeightKg=weight;
+  }else if(type==="length"){
+    lengthM=num("inputValue");if(!(lengthM>0))return showError("Please enter a length greater than 0 m.");
+    totalWeightKg=(totalGsm*widthM*lengthM)/1000;
+  }else{
+    const D=num("outerDiameter"),d=num("coreDiameter");if(!(D>0)||!(d>0))return showError("Please enter valid outer and core diameters.");
+    if(D<=d)return showError("Outer diameter must be greater than core diameter.");
+    const thicknessMm=totalThicknessUm/1000;
+    lengthM=(Math.PI*(D*D-d*d))/(4*thicknessMm)/1000;
+    totalWeightKg=(totalGsm*widthM*lengthM)/1000;
+  }
+  const rows=layerRows.map(r=>({name:r.name,weight:(r.gsm*widthM*lengthM)/1000}));
+  if(ink>0)rows.push({name:"INK",weight:(ink*widthM*lengthM)/1000});
+  if(glue>0)rows.push({name:`GLUE (${interfaces} interface${interfaces===1?"":"s"})`,weight:(glue*widthM*lengthM)/1000});
+  const inputDescription=type==="weight"?`${num("inputValue").toFixed(2)} kg input`:type==="length"?`${num("inputValue").toFixed(2)} m input`:`${num("outerDiameter").toFixed(1)} mm roll`;
+  $("result").classList.remove("hidden");
+  $("result").innerHTML=`
+    <div class="resultTop">
+      <div class="metric"><small>Total GSM</small><strong>${totalGsm.toFixed(2)} g/m²</strong></div>
+      <div class="metric"><small>${type==="length"?"Total weight":"Total length"}</small><strong>${type==="length"?totalWeightKg.toFixed(2)+" kg":lengthM.toFixed(2)+" m"}</strong></div>
+    </div>
+    <table class="table"><thead><tr><th>Component</th><th>Weight (kg)</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr><td>${r.name}</td><td>${r.weight.toFixed(2)}</td></tr>`).join("")}
+      <tr class="total"><td>TOTAL</td><td>${totalWeightKg.toFixed(2)}</td></tr>
+    </tbody></table>
+    <div class="note">Width: ${widthMm.toFixed(1)} mm • Total film thickness: ${totalThicknessUm.toFixed(1)} µm • ${inputDescription}</div>`;
+  lastCalc={widthMm,widthM,printed,ink,glue,interfaces,layerRows,lengthM,totalWeightKg,rows,totalGsm};
+  calculateCost();
+}
+function calculateCost(){
+  if(!lastCalc)return showError("Calculate the material requirement first.");
+  $("costEmptyNote").classList.add("hidden");
+  const waste=Math.max(0,num("waste")||0)/100;
+  const inkPrice=getExtraPrice("ink"),gluePrice=getExtraPrice("glue");
+  const filmMaterialRows=lastCalc.rows.filter(r=>r.name!=="INK"&&!r.name.startsWith("GLUE"));
+  let filmMaterialCost=0;
+  const priceRows=lastCalc.layerRows.map((layer,i)=>{
+    const price=parseFloat(getMaterialPrice(layer.type))||0;
+    const weight=(layer.gsm*lastCalc.widthM*lastCalc.lengthM)/1000;
+    const cost=weight*price*(1+waste);
+    filmMaterialCost+=cost;
+    return {name:layer.name,weight,cost,price};
+  });
+  const inkWeight=lastCalc.rows.find(r=>r.name==="INK")?.weight||0;
+  const glueWeight=lastCalc.rows.find(r=>r.name.startsWith("GLUE"))?.weight||0;
+  const inkCost=inkWeight*(1+waste)*inkPrice;
+  const glueCost=glueWeight*(1+waste)*gluePrice;
+  const finishedWeight=lastCalc.totalWeightKg;
+
+  // Fixed / operating costs (electricity, rent, salary, other) spread automatically
+  // over this order using the press output rate and monthly working hours. This
+  // is the factory's full operating cost — it already covers running the press
+  // (printing & lamination), so there is no separate manual printing/lamination entry.
+  const elecPerHour=Math.max(0,num("elecPerHour")||0);
+  const pressOutput=Math.max(0,num("pressOutput")||0);
+  const workingHoursMonth=Math.max(0,num("workingHoursMonth")||0);
+  const rentMonth=Math.max(0,num("rentMonth")||0);
+  const salaryMonth=Math.max(0,num("salaryMonth")||0);
+  const otherChargesMonth=Math.max(0,num("otherChargesMonth")||0);
+  const hourlyFixed=workingHoursMonth>0?(rentMonth+salaryMonth+otherChargesMonth)/workingHoursMonth:0;
+  const hourlyTotal=elecPerHour+hourlyFixed;
+  const estHours=pressOutput>0?finishedWeight/pressOutput:0;
+  const overheadCost=hourlyTotal*estHours;
+
+  const totalCost=filmMaterialCost+inkCost+glueCost+overheadCost;
+  const costPerKg=finishedWeight>0?totalCost/finishedWeight:0;
+
+  // Selling price is calculated automatically from cost + target margin.
+  // Margin = (sellingPrice - cost) / sellingPrice  =>  sellingPrice = cost / (1 - margin)
+  const margin=Math.min(0.95,Math.max(0,num("targetMargin")||0)/100);
+  const sellingPrice=margin>0?costPerKg/(1-margin):costPerKg;
+  const revenue=sellingPrice*finishedWeight;
+  const profit=revenue-totalCost;
+  lastCostCalc={costPerKg,margin,sellingPrice,totalCost,revenue,profit,finishedWeight};
+
+  const hasFixedInputs=elecPerHour>0||rentMonth>0||salaryMonth>0||otherChargesMonth>0;
+  $("costResult").classList.remove("hidden");
+  $("costResult").innerHTML=`
+    <div class="cost-result">
+      <div class="cost-card"><small>Film material</small><strong>${money(filmMaterialCost)}</strong></div>
+      <div class="cost-card"><small>Ink</small><strong>${money(inkCost)}</strong></div>
+      <div class="cost-card"><small>Glue</small><strong>${money(glueCost)}</strong></div>
+      <div class="cost-card"><small>Electricity / rent / salary</small><strong>${money(overheadCost)}</strong></div>
+      <div class="cost-card primary-result"><small>Total production cost</small><strong>${money(totalCost)}</strong></div>
+      <div class="cost-card primary-result"><small>Cost / kg</small><strong>${money(costPerKg)}</strong></div>
+      <div class="cost-card"><small>Margin applied</small><strong>${(margin*100).toFixed(1)}%</strong></div>
+      <div class="cost-card primary-result"><small>Selling price / kg</small><strong>${money(sellingPrice)}</strong></div>
+      <div class="cost-card"><small>Total selling price</small><strong>${money(revenue)}</strong></div>
+      <div class="cost-card ${profit>=0?"primary-result":""}"><small>${profit>=0?"Estimated profit":"Estimated loss"}</small><strong>${money(profit)}</strong></div>
+    </div>
+    <div class="note">Finished quantity: ${finishedWeight.toFixed(2)} kg • Waste applied: ${(waste*100).toFixed(1)}%${pressOutput>0?` • Estimated production time: ${estHours.toFixed(2)} h`:""}</div>
+    ${margin===0?`<div class="note">No margin set — selling price currently equals cost. Set a target margin (%) in Factory Cost Settings.</div>`:""}
+    ${hasFixedInputs&&pressOutput===0?`<div class="note error">Set your PRESS OUTPUT (kg/hour) in Factory Cost Settings so electricity, rent & salary can be spread correctly — they're currently showing as 0.</div>`:""}
+    <table class="table" style="margin-top:12px"><thead><tr><th>Film layer</th><th>kg</th><th>Price/kg</th><th>Cost</th></tr></thead><tbody>
+      ${priceRows.map(r=>`<tr><td>${r.name}</td><td>${r.weight.toFixed(2)}</td><td>${money(r.price)}</td><td>${money(r.cost)}</td></tr>`).join("")}
+    </tbody></table>`;
+}
+
+let savedOrders=JSON.parse(localStorage.getItem("fc_orders")||"[]");
+
+function todayISO(){
+  const d=new Date();
+  const local=new Date(d.getTime()-d.getTimezoneOffset()*60000);
+  return local.toISOString().slice(0,10);
+}
+
+function getOrderCalculation(){
+  if(!lastCalc)return null;
+  const prices=lastCalc.layerRows.map(layer=>({name:layer.name,price:parseFloat(getMaterialPrice(layer.type))||0}));
+  const waste=Math.max(0,num("waste")||0);
+  const sellingPrice=lastCostCalc?.sellingPrice||0;
+  const margin=lastCostCalc?.margin?lastCostCalc.margin*100:0;
+  const costPerKg=lastCostCalc?.costPerKg||0;
+  return {
+    structure:layers.map(l=>`${l.type.toUpperCase()} ${parseFloat(l.thickness)||0}µm`).join(" / "),
+    layerCount:layers.length,
+    widthMm:lastCalc.widthMm,
+    totalGsm:lastCalc.totalGsm,
+    lengthM:lastCalc.lengthM,
+    quantityKg:lastCalc.totalWeightKg,
+    prices,
+    layerWeights:lastCalc.rows.filter(r=>r.name!=="INK"&&!r.name.startsWith("GLUE")).map(r=>r.weight),
+    waste,
+    currency:($("currency").value||"DA").trim(),
+    sellingPrice,
+    margin,
+    costPerKg,
+    savedAt:new Date().toISOString()
+  };
+}
+
+function saveOrder(){
+  const calc=getOrderCalculation();
+  const order={
+    id:Date.now(),
+    orderNumber:$("orderNumber").value.trim()||`ORDER-${Date.now()}`,
+    date:$("orderDate").value||todayISO(),
+    customer:$("customerName").value.trim(),
+    product:$("productName").value.trim(),
+    reference:$("productRef").value.trim(),
+    width:parseFloat($("orderWidth").value)||0,
+    structure:$("orderStructureInput").value.trim(),
+    quantity:parseFloat($("orderQuantity").value)||0,
+    quantityM:parseFloat($("orderQuantityM").value)||0,
+    notes:$("orderNotes").value.trim(),
+    calculation:calc
+  };
+  if(!order.customer && !order.product){
+    showOrderMessage("Please enter at least a customer or product name.","error"); return;
+  }
+  if(order.quantity<=0 && order.quantityM<=0 && !order.calculation){
+    showOrderMessage("Enter an order quantity (kg or m) or calculate a production requirement first.","error"); return;
+  }
+  savedOrders.unshift(order);
+  localStorage.setItem("fc_orders",JSON.stringify(savedOrders));
+  renderOrders();
+  showOrderMessage("Order saved successfully.","ok");
+}
+
+function showOrderMessage(message,type){
+  const el=$("orderMessage");
+  el.classList.remove("hidden","error","ok");
+  el.classList.add(type==="error"?"error":"ok");
+  el.textContent=message;
+}
+
+function useCurrentCalculation(){
+  if(!lastCalc){
+    showOrderMessage("Calculate the material requirement first.","error"); return;
+  }
+  $("orderQuantity").value=lastCalc.totalWeightKg.toFixed(2);
+  $("orderQuantityM").value=lastCalc.lengthM.toFixed(2);
+  $("orderWidth").value=lastCalc.widthMm.toFixed(1);
+  $("orderStructureInput").value=layers.map(l=>`${l.type.toUpperCase()} ${parseFloat(l.thickness)||0}µm`).join(" / ");
+  showOrderMessage("Current calculation added to the order (width, structure & quantity).","ok");
+}
+
+function clearOrderForm(){
+  ["orderNumber","customerName","productName","productRef","orderWidth","orderStructureInput","orderQuantity","orderQuantityM","orderNotes"].forEach(id=>$(id).value="");
+  $("orderDate").value=todayISO();
+  $("orderMessage").classList.add("hidden");
+}
+
+function showOrderView(view){
+  const isForm=view==="form";
+  $("orderFormCard").classList.toggle("hidden",!isForm);
+  $("orderListCard").classList.toggle("hidden",isForm);
+  $("newOrderBtn").classList.toggle("active",isForm);
+  $("orderListBtn").classList.toggle("active",!isForm);
+  if(!isForm)renderOrders();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function deleteOrder(id){
+  savedOrders=savedOrders.filter(o=>o.id!==id);
+  localStorage.setItem("fc_orders",JSON.stringify(savedOrders));
+  renderOrders();
+}
+
+function renderOrders(){
+  const box=$("ordersList");
+  if(!savedOrders.length){
+    box.innerHTML='<div class="note">No saved orders yet.</div>';
+    return;
+  }
+  box.innerHTML=savedOrders.map(o=>{
+    const c=o.calculation;
+    const currency=c?.currency||$("currency").value||"DA";
+    const qtyKg=o.quantity||c?.quantityKg||0;
+    const qtyM=o.quantityM||c?.lengthM||0;
+    const structure=o.structure||c?.structure||"Not calculated";
+    const widthMm=o.width||c?.widthMm||0;
+    const costPerKg=c&&c.quantityKg?calculateStoredCostPerKg(c):0;
+    return `<div class="orderItem">
+      <div class="orderHead">
+        <div>
+          <div class="orderTitle">${escapeHtml(o.orderNumber)}<span class="dot">•</span><span class="orderCust">${escapeHtml(o.customer||"No customer")}</span></div>
+          <div class="orderMeta">${escapeHtml(o.date)}</div>
+        </div>
+        <button class="dangerbtn" onclick="deleteOrder(${o.id})">Delete</button>
+      </div>
+      <div class="orderMeta">${escapeHtml(o.product||"No product")}${o.reference?" • Ref: "+escapeHtml(o.reference):""}</div>
+      <div class="orderGrid">
+        <div class="orderStat"><small>Structure</small><b>${escapeHtml(structure)}</b></div>
+        <div class="orderStat"><small>Width</small><b>${widthMm?widthMm.toFixed(1)+" mm":"—"}</b></div>
+        <div class="orderStat"><small>Quantity (kg)</small><b>${qtyKg?qtyKg.toFixed(2)+" kg":"—"}</b></div>
+        <div class="orderStat"><small>Quantity (m)</small><b>${qtyM?qtyM.toFixed(2)+" m":"—"}</b></div>
+        <div class="orderStat"><small>Cost / kg</small><b>${costPerKg?costPerKg.toFixed(2)+" "+escapeHtml(currency):"—"}</b></div>
+      </div>
+      ${o.notes?`<div class="note">Notes: ${escapeHtml(o.notes)}</div>`:""}
+    </div>`;
+  }).join("");
+}
+
+function calculateStoredCostPerKg(c){
+  // Stored orders retain the inputs needed for a later full order-costing phase.
+  // For now this displays the material-only cost when prices are available.
+  if(!c||!c.quantityKg)return 0;
+  let total=0;
+  (c.prices||[]).forEach((p,i)=>{
+    const layer=c.prices[i];
+    const row=c.layerWeights?.[i];
+    if(row)total+=row*p.price*(1+(c.waste||0)/100);
+  });
+  return total/c.quantityKg;
+}
+
+function escapeHtml(value){
+  return String(value??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+}
+
+/* ========================================================
+   Production tracking
+   ======================================================== */
+
+function getOrderLayerCount(order){
+  if(order.calculation?.layerCount)return order.calculation.layerCount;
+  const structure=order.structure||order.calculation?.structure||"";
+  const parts=structure.split("/").map(s=>s.trim()).filter(Boolean);
+  return parts.length||1;
+}
+function getOrderWidthM(order){
+  const mm=(order.calculation?.widthMm)||order.width||0;
+  return mm/1000;
+}
+function getOrderGsm(order){
+  return order.calculation?.totalGsm||0;
+}
+function getOrderCostPerKg(order){
+  const c=order.calculation;
+  if(!c)return 0;
+  if(c.costPerKg)return c.costPerKg;
+  return calculateStoredCostPerKg(c);
+}
+function getOrderPlannedWeightKg(order){
+  return order.quantity||order.calculation?.quantityKg||0;
+}
+function getOrderPlannedLengthM(order){
+  return order.quantityM||order.calculation?.lengthM||0;
+}
+
+function computeProductionStats(order){
+  const p=order.production;
+  if(!p)return null;
+  const widthM=getOrderWidthM(order);
+  const gsm=getOrderGsm(order);
+  const costPerKg=getOrderCostPerKg(order);
+  const layerCount=getOrderLayerCount(order);
+  const needsLamination=layerCount>1;
+  const printedM=p.printedM||0, laminatedM=p.laminatedM||0, slittedM=p.slittedM||0;
+  const printWasteM=p.printWasteM||0, actualWeightKg=p.actualWeightKg||0;
+  const baseM=needsLamination?(laminatedM||printedM):printedM;
+  const slitWasteM=(baseM>0&&slittedM>0)?Math.max(0,baseM-slittedM):0;
+  const totalWasteM=printWasteM+slitWasteM;
+  const wasteKg=(widthM>0&&gsm>0)?(totalWasteM*widthM*gsm)/1000:0;
+  const wasteCost=wasteKg*costPerKg;
+  const orderWeightKg=getOrderPlannedWeightKg(order);
+  const weightVarianceKg=(actualWeightKg&&orderWeightKg)?actualWeightKg-orderWeightKg:null;
+  return {widthM,gsm,costPerKg,layerCount,needsLamination,printedM,laminatedM,slittedM,printWasteM,actualWeightKg,
+    baseM,slitWasteM,totalWasteM,wasteKg,wasteCost,orderWeightKg,weightVarianceKg};
+}
+
+function renderProductionOrderSelect(){
+  const sel=$("productionOrderSelect");
+  const current=sel.value;
+  sel.innerHTML='<option value="">Select a saved order…</option>'+savedOrders.map(o=>
+    `<option value="${o.id}">${escapeHtml(o.orderNumber)} — ${escapeHtml(o.customer||"No customer")}${o.production?" ✓":""}</option>`
+  ).join("");
+  if(current && savedOrders.some(o=>String(o.id)===String(current))){
+    sel.value=current;
+    loadProductionForSelected();
+  }else{
+    $("productionForm").classList.add("hidden");
+    $("productionEmptyNote").classList.toggle("hidden",savedOrders.length===0);
+    $("productionEmptyNote").textContent=savedOrders.length===0
+      ?"Save an order on the Orders tab first, then come back here to log its real production."
+      :"Select a saved order above to log its real production.";
+  }
+}
+
+function loadProductionForSelected(){
+  const id=$("productionOrderSelect").value;
+  if(!id){
+    $("productionForm").classList.add("hidden");
+    $("productionEmptyNote").classList.remove("hidden");
+    return;
+  }
+  const order=savedOrders.find(o=>String(o.id)===String(id));
+  if(!order)return;
+  $("productionEmptyNote").classList.add("hidden");
+  $("productionForm").classList.remove("hidden");
+  $("productionMessage").classList.add("hidden");
+
+  const layerCount=getOrderLayerCount(order);
+  $("prodLaminatedM").disabled=layerCount<=1;
+  $("prodLamHint").textContent=layerCount>1
+    ?`This order has ${layerCount} layers — enter laminated meters.`
+    :"Mono structure — lamination not applicable.";
+
+  const p=order.production||{};
+  $("prodPrintedM").value=p.printedM??"";
+  $("prodLaminatedM").value=p.laminatedM??"";
+  $("prodSlittedM").value=p.slittedM??"";
+  $("prodPrintWasteM").value=p.printWasteM??"";
+  $("prodActualWeight").value=p.actualWeightKg??"";
+
+  const plannedKg=getOrderPlannedWeightKg(order), plannedM=getOrderPlannedLengthM(order);
+  $("productionOrderSummary").innerHTML=`<b>${escapeHtml(order.orderNumber)}</b> — ${escapeHtml(order.customer||"No customer")}<br>
+    Planned: ${plannedKg?plannedKg.toFixed(2)+" kg":"—"} • ${plannedM?plannedM.toFixed(2)+" m":"—"} • ${escapeHtml(order.structure||order.calculation?.structure||"No structure recorded")}`;
+
+  renderProductionStats(order);
+}
+
+function saveProduction(){
+  const id=$("productionOrderSelect").value;
+  if(!id)return;
+  const order=savedOrders.find(o=>String(o.id)===String(id));
+  if(!order)return;
+  order.production={
+    printedM:parseFloat($("prodPrintedM").value)||0,
+    laminatedM:parseFloat($("prodLaminatedM").value)||0,
+    slittedM:parseFloat($("prodSlittedM").value)||0,
+    printWasteM:parseFloat($("prodPrintWasteM").value)||0,
+    actualWeightKg:parseFloat($("prodActualWeight").value)||0,
+    updatedAt:new Date().toISOString()
+  };
+  localStorage.setItem("fc_orders",JSON.stringify(savedOrders));
+  const el=$("productionMessage");
+  el.classList.remove("hidden","error");el.classList.add("ok");
+  el.textContent="Production saved for this order.";
+  renderProductionStats(order);
+  renderProductionOrderSelect();
+  $("productionOrderSelect").value=id;
+  renderProductionList();
+}
+
+function renderProductionStats(order){
+  const s=computeProductionStats(order);
+  const box=$("productionStats");
+  if(!s||(!s.printedM&&!s.laminatedM&&!s.slittedM&&!s.printWasteM&&!s.actualWeightKg)){
+    box.classList.add("hidden");box.innerHTML="";return;
+  }
+  box.classList.remove("hidden");
+  const varianceOk=s.weightVarianceKg===null||!s.orderWeightKg||Math.abs(s.weightVarianceKg)<=s.orderWeightKg*0.03;
+  const varianceLine=s.weightVarianceKg===null?"":
+    `<div class="cost-card"><small>Weight vs order</small><strong class="${varianceOk?"":"error"}">${s.weightVarianceKg>=0?"+":""}${s.weightVarianceKg.toFixed(2)} kg</strong></div>`;
+  box.innerHTML=`
+    <div class="cost-result">
+      <div class="cost-card"><small>Slitting waste</small><strong>${s.slitWasteM.toFixed(2)} m</strong></div>
+      <div class="cost-card"><small>Printing waste</small><strong>${s.printWasteM.toFixed(2)} m</strong></div>
+      <div class="cost-card primary-result"><small>Total waste</small><strong>${s.totalWasteM.toFixed(2)} m${s.wasteKg?" ("+s.wasteKg.toFixed(2)+" kg)":""}</strong></div>
+      <div class="cost-card primary-result"><small>Cost of waste</small><strong>${s.wasteCost?money(s.wasteCost):"—"}</strong></div>
+      ${varianceLine}
+    </div>
+    ${(!s.widthM||!s.gsm)?'<div class="note">This order has no saved width/GSM calculation, so waste can only be shown in metres, not kg or cost.</div>':""}
+    ${(s.widthM&&s.gsm&&!s.costPerKg)?'<div class="note">No production cost/kg was saved with this order — recalculate it on the Calculator tab with Factory Cost Settings filled in to get a waste cost estimate.</div>':""}
+  `;
+}
+
+function renderProductionList(){
+  const box=$("productionList");
+  const logged=savedOrders.filter(o=>o.production);
+  if(!logged.length){box.innerHTML='<div class="note">Nothing logged yet.</div>';return;}
+  box.innerHTML=logged.map(o=>{
+    const s=computeProductionStats(o)||{};
+    return `<div class="orderItem">
+      <div class="orderHead">
+        <div>
+          <div class="orderTitle">${escapeHtml(o.orderNumber)}<span class="dot">•</span><span class="orderCust">${escapeHtml(o.customer||"No customer")}</span></div>
+          <div class="orderMeta">${o.production.updatedAt?"Logged "+new Date(o.production.updatedAt).toLocaleDateString():""}</div>
+        </div>
+      </div>
+      <div class="orderGrid">
+        <div class="orderStat"><small>Printed</small><b>${(o.production.printedM||0).toFixed(2)} m</b></div>
+        <div class="orderStat"><small>Slit</small><b>${(o.production.slittedM||0).toFixed(2)} m</b></div>
+        <div class="orderStat"><small>Total waste</small><b>${(s.totalWasteM||0).toFixed(2)} m</b></div>
+        <div class="orderStat"><small>Waste cost</small><b>${s.wasteCost?money(s.wasteCost):"—"}</b></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* ========================================================
+   Reports
+   ======================================================== */
+
+function renderReports(){
+  const empty=$("reportsEmpty"), summaryBox=$("reportsSummary"), container=$("clientReports");
+  if(!savedOrders.length){
+    empty.classList.remove("hidden");
+    summaryBox.classList.add("hidden");
+    container.innerHTML="";
+    return;
+  }
+  empty.classList.add("hidden");
+
+  const byClient={};
+  savedOrders.forEach(o=>{
+    const key=o.customer||"No customer";
+    if(!byClient[key])byClient[key]={orders:[],totalM:0,totalKg:0,totalWasteM:0,totalWasteKg:0,totalWasteCost:0};
+    const s=computeProductionStats(o);
+    byClient[key].orders.push({order:o,stats:s});
+    byClient[key].totalM+=getOrderPlannedLengthM(o);
+    byClient[key].totalKg+=getOrderPlannedWeightKg(o);
+    if(s){
+      byClient[key].totalWasteM+=s.totalWasteM;
+      byClient[key].totalWasteKg+=s.wasteKg;
+      byClient[key].totalWasteCost+=s.wasteCost;
+    }
+  });
+
+  let grandWasteCost=0, grandWasteKg=0;
+  Object.values(byClient).forEach(c=>{grandWasteCost+=c.totalWasteCost;grandWasteKg+=c.totalWasteKg;});
+
+  summaryBox.classList.remove("hidden");
+  summaryBox.innerHTML=`
+    <div class="resultTop">
+      <div class="metric"><small>Clients</small><strong>${Object.keys(byClient).length}</strong></div>
+      <div class="metric"><small>Orders</small><strong>${savedOrders.length}</strong></div>
+      <div class="metric"><small>Total waste</small><strong>${grandWasteKg.toFixed(2)} kg</strong></div>
+    </div>
+    <div class="cost-result"><div class="cost-card primary-result"><small>Total cost of waste — all clients</small><strong>${money(grandWasteCost)}</strong></div></div>`;
+
+  container.innerHTML=Object.entries(byClient).map(([name,c])=>{
+    const rows=c.orders.map(({order:o,stats:s})=>`
+      <div class="clientOrderRow">
+        <div class="orow1"><span>${escapeHtml(o.orderNumber)}</span><span>${s&&s.wasteCost?money(s.wasteCost):"—"}</span></div>
+        <div class="orow2"><span>${getOrderPlannedLengthM(o).toFixed(2)} m • ${getOrderPlannedWeightKg(o).toFixed(2)} kg</span><span>${s?s.totalWasteM.toFixed(2)+" m waste":"No production logged"}</span></div>
+      </div>`).join("");
+    return `<div class="clientReport">
+      <div class="clientReportHead">
+        <div class="clientReportName">${escapeHtml(name)}</div>
+        <div class="clientReportCount">${c.orders.length} order${c.orders.length===1?"":"s"}</div>
+      </div>
+      <div class="orderGrid" style="margin-top:10px">
+        <div class="orderStat"><small>Total meters</small><b>${c.totalM.toFixed(2)} m</b></div>
+        <div class="orderStat"><small>Total weight</small><b>${c.totalKg.toFixed(2)} kg</b></div>
+        <div class="orderStat"><small>Waste</small><b>${c.totalWasteKg.toFixed(2)} kg</b></div>
+        <div class="orderStat"><small>Cost of waste</small><b>${money(c.totalWasteCost)}</b></div>
+      </div>
+      ${rows}
+    </div>`;
+  }).join("");
+}
+
+function buildOrderExportRows(){
+  const defaultCurrency=$("currency").value||"DA";
+  return savedOrders.map(o=>{
+    const c=o.calculation;
+    const structure=o.structure||c?.structure||"—";
+    const widthMm=o.width||c?.widthMm||0;
+    const qtyKg=o.quantity||c?.quantityKg||0;
+    const qtyM=o.quantityM||c?.lengthM||0;
+    const costPerKg=c&&c.quantityKg?calculateStoredCostPerKg(c):0;
+    return {
+      orderNumber:o.orderNumber,date:o.date,customer:o.customer||"—",product:o.product||"—",
+      reference:o.reference||"—",structure,widthMm,qtyKg,qtyM,costPerKg,
+      currency:c?.currency||defaultCurrency,notes:o.notes||""
+    };
+  });
+}
+
+function exportOrders(){
+  if(!savedOrders.length){
+    alert("There are no saved orders to export."); return;
+  }
+  const rows=buildOrderExportRows();
+  if(window.jspdf && window.jspdf.jsPDF){
+    downloadOrdersPdf(rows);
+  }else{
+    // jsPDF didn't load (e.g. no internet right now) — fall back to the
+    // browser's own print dialog, where "Save as PDF" still produces a file.
+    printOrdersFallback(rows);
+  }
+}
+
+function downloadOrdersPdf(rows){
+  const { jsPDF }=window.jspdf;
+  const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
+  const pageW=doc.internal.pageSize.getWidth();
+  const pageH=doc.internal.pageSize.getHeight();
+  const margin=12;
+  const usableW=pageW-margin*2;
+  const cols=[
+    {key:"orderNumber",label:"Order #",w:0.13,align:"left"},
+    {key:"date",label:"Date",w:0.08,align:"left"},
+    {key:"customer",label:"Customer",w:0.11,align:"left"},
+    {key:"product",label:"Product",w:0.13,align:"left"},
+    {key:"reference",label:"Ref",w:0.06,align:"left"},
+    {key:"structure",label:"Structure",w:0.15,align:"left"},
+    {key:"widthMm",label:"Width (mm)",w:0.07,align:"right",fmt:v=>v?v.toFixed(1):"—"},
+    {key:"qtyKg",label:"Qty (kg)",w:0.08,align:"right",fmt:v=>v?v.toFixed(2):"—"},
+    {key:"qtyM",label:"Qty (m)",w:0.08,align:"right",fmt:v=>v?v.toFixed(2):"—"},
+    {key:"costDisplay",label:"Cost/kg",w:0.11,align:"right"}
+  ];
+  cols.forEach(c=>c.wmm=c.w*usableW);
+
+  const title="FlexoCalculator — Saved Orders";
+  const generatedAt=new Date().toLocaleString();
+  const totalKg=rows.reduce((s,r)=>s+(r.qtyKg||0),0);
+  const data=rows.map(r=>({
+    ...r,
+    costDisplay:r.costPerKg?`${r.costPerKg.toFixed(2)} ${r.currency}`:"—"
+  }));
+
+  const headRowH=8;
+  const lineH=4.2;
+  const cellPad=1.8;
+  doc.setFont("helvetica","normal");
+
+  let y=margin;
+  function drawHeader(){
+    doc.setFontSize(15);
+    doc.setFont("helvetica","bold");
+    doc.setTextColor(21,25,29);
+    doc.text(title,margin,y+6);
+    doc.setFontSize(9);
+    doc.setFont("helvetica","normal");
+    doc.setTextColor(91,102,112);
+    doc.text(`Generated ${generatedAt} • ${rows.length} order${rows.length===1?"":"s"}`,margin,y+12);
+    y+=18;
+    drawTableHead();
+  }
+  function drawTableHead(){
+    doc.setFillColor(21,25,29);
+    doc.rect(margin,y,usableW,headRowH,"F");
+    doc.setFontSize(8);
+    doc.setFont("helvetica","bold");
+    doc.setTextColor(255,255,255);
+    let x=margin;
+    cols.forEach(c=>{
+      const tx=c.align==="right"?x+c.wmm-cellPad:x+cellPad;
+      doc.text(String(c.label).toUpperCase(),tx,y+5.5,{align:c.align==="right"?"right":"left"});
+      x+=c.wmm;
+    });
+    y+=headRowH;
+    doc.setFont("helvetica","normal");
+    doc.setTextColor(21,25,29);
+  }
+
+  drawHeader();
+
+  data.forEach((r,idx)=>{
+    // wrap each cell's text to its column width, compute row height
+    const wrapped=cols.map(c=>{
+      const raw=c.fmt?c.fmt(r[c.key]):String(r[c.key]??"—");
+      return doc.splitTextToSize(raw,c.wmm-cellPad*2);
+    });
+    const rowLines=Math.max(1,...wrapped.map(w=>w.length));
+    const rowH=Math.max(7,rowLines*lineH+2);
+
+    if(y+rowH>pageH-margin){
+      doc.addPage();
+      y=margin;
+      drawTableHead();
+    }
+
+    if(idx%2===1){
+      doc.setFillColor(245,247,248);
+      doc.rect(margin,y,usableW,rowH,"F");
+    }
+    doc.setDrawColor(219,225,229);
+    doc.setLineWidth(0.1);
+    doc.rect(margin,y,usableW,rowH,"S");
+
+    doc.setFontSize(8.3);
+    let x=margin;
+    cols.forEach((c,ci)=>{
+      const lines=wrapped[ci];
+      const tx=c.align==="right"?x+c.wmm-cellPad:x+cellPad;
+      doc.text(lines,tx,y+5,{align:c.align==="right"?"right":"left"});
+      x+=c.wmm;
+    });
+    y+=rowH;
+  });
+
+  y+=6;
+  if(y>pageH-margin){ doc.addPage(); y=margin; }
+  doc.setFontSize(9);
+  doc.setTextColor(91,102,112);
+  doc.text(`Total quantity: ${totalKg.toFixed(2)} kg across ${rows.length} order${rows.length===1?"":"s"}.`,margin,y);
+
+  doc.save(`flexocalculator-orders-${todayISO()}.pdf`);
+}
+
+function printOrdersFallback(rows){
+  const totalKg=rows.reduce((s,r)=>s+(r.qtyKg||0),0);
+  const generatedAt=new Date().toLocaleString();
+  const html=`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>FlexoCalculator — Orders Export</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#15191D;margin:0;padding:28px;font-size:12px}
+  h1{font-size:20px;margin:0 0 2px;letter-spacing:-.2px}
+  .meta{color:#5B6670;font-size:12px;margin-bottom:18px}
+  table{width:100%;border-collapse:collapse;font-size:10.5px}
+  th,td{border:1px solid #DBE1E5;padding:7px 8px;text-align:left;vertical-align:top}
+  th{background:#15191D;color:#fff;font-size:9.5px;text-transform:uppercase;letter-spacing:.3px}
+  tr:nth-child(even) td{background:#F5F7F8}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .foot{margin-top:16px;font-size:11px;color:#5B6670}
+  @media print{ @page{size:A4 landscape;margin:12mm} }
+</style></head>
+<body>
+  <h1>FlexoCalculator — Saved Orders</h1>
+  <div class="meta">Generated ${escapeHtml(generatedAt)} • ${rows.length} order${rows.length===1?"":"s"}</div>
+  <table>
+    <thead><tr>
+      <th>Order #</th><th>Date</th><th>Customer</th><th>Product</th><th>Ref</th>
+      <th>Structure</th><th class="num">Width (mm)</th><th class="num">Qty (kg)</th><th class="num">Qty (m)</th>
+      <th class="num">Cost/kg</th><th>Notes</th>
+    </tr></thead>
+    <tbody>
+      ${rows.map(r=>`<tr>
+        <td>${escapeHtml(r.orderNumber)}</td>
+        <td>${escapeHtml(r.date)}</td>
+        <td>${escapeHtml(r.customer)}</td>
+        <td>${escapeHtml(r.product)}</td>
+        <td>${escapeHtml(r.reference)}</td>
+        <td>${escapeHtml(r.structure)}</td>
+        <td class="num">${r.widthMm?r.widthMm.toFixed(1):"—"}</td>
+        <td class="num">${r.qtyKg?r.qtyKg.toFixed(2):"—"}</td>
+        <td class="num">${r.qtyM?r.qtyM.toFixed(2):"—"}</td>
+        <td class="num">${r.costPerKg?r.costPerKg.toFixed(2)+" "+escapeHtml(r.currency):"—"}</td>
+        <td>${escapeHtml(r.notes)}</td>
+      </tr>`).join("")}
+    </tbody>
+  </table>
+  <div class="foot">Total quantity: ${totalKg.toFixed(2)} kg across ${rows.length} order${rows.length===1?"":"s"}.</div>
+</body></html>`;
+
+  const iframe=document.createElement("iframe");
+  iframe.style.position="fixed";
+  iframe.style.right="0";iframe.style.bottom="0";
+  iframe.style.width="0";iframe.style.height="0";
+  iframe.style.border="0";
+  iframe.setAttribute("aria-hidden","true");
+  document.body.appendChild(iframe);
+  const doc=iframe.contentWindow.document;
+  doc.open();doc.write(html);doc.close();
+
+  const cleanup=()=>{ if(iframe.parentNode) iframe.parentNode.removeChild(iframe); };
+  iframe.contentWindow.onafterprint=cleanup;
+  setTimeout(()=>{
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+  },250);
+  setTimeout(cleanup,120000); // safety net if the browser never fires afterprint
+}
+
+function clearAllOrders(){
+  if(!savedOrders.length)return;
+  if(!confirm("Delete all saved orders from this device?"))return;
+  savedOrders=[];
+  localStorage.removeItem("fc_orders");
+  renderOrders();
+}
+
+function showError(msg){$("result").classList.remove("hidden");$("result").innerHTML=`<div class="error">${msg}</div>`;}
+
+const factoryFields=["waste","targetMargin","currency","elecPerHour","pressOutput","workingHoursMonth","rentMonth","salaryMonth","otherChargesMonth"];
+
+function saveFactoryPrices(){
+  factoryFields.forEach(id=>localStorage.setItem("fc_"+id,$(id).value));
+  flashFactorySaved();
+  if(lastCalc)calculateCost();
+}
+function loadFactoryPrices(){
+  factoryFields.forEach(id=>{const v=localStorage.getItem("fc_"+id);if(v!==null)$(id).value=v;});
+  if(lastCalc)calculateCost();
+}
+function autosaveFactoryField(id){
+  localStorage.setItem("fc_"+id,$(id).value);
+  flashFactorySaved();
+  if(lastCalc)calculateCost();
+}
+function flashFactorySaved(){
+  const note=$("factorySavedNote");
+  if(!note)return;
+  note.classList.remove("hidden");
+  clearTimeout(flashFactorySaved._t);
+  flashFactorySaved._t=setTimeout(()=>note.classList.add("hidden"),1800);
+}
+function resetFactory(){
+  if(!confirm("Reset all factory cost settings to the default values?"))return;
+  const defaults={waste:5,targetMargin:0,currency:"DA",elecPerHour:0,pressOutput:0,workingHoursMonth:0,rentMonth:0,salaryMonth:0,otherChargesMonth:0};
+  factoryFields.forEach(id=>{
+    $(id).value=defaults[id];
+    localStorage.removeItem("fc_"+id);
+  });
+  if(lastCalc)calculateCost();
+}
+
+function showPage(target){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".navbtn").forEach(b=>b.classList.remove("active"));
+  const page=document.getElementById(target);
+  if(page)page.classList.add("active");
+  const btn=document.querySelector(`.navbtn[data-page="${target}"]`);
+  if(btn)btn.classList.add("active");
+  if(target==="productionPage"){renderProductionOrderSelect();renderProductionList();}
+  if(target==="reportsPage"){renderReports();}
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+document.querySelectorAll(".navbtn").forEach(btn=>{
+  btn.onclick=()=>showPage(btn.dataset.page);
+});
+["goFactoryLink","goFactoryLink2"].forEach(id=>{
+  const el=$(id);
+  if(el)el.onclick=ev=>{ev.preventDefault();showPage("factoryPage");};
+});
+
+$("structure").onchange=renderLayers;
+$("inputType").onchange=updateInputUI;
+$("calculate").onclick=calculate;
+factoryFields.forEach(id=>$(id).oninput=()=>autosaveFactoryField(id));
+$("savePrices").onclick=saveFactoryPrices;
+$("resetFactory").onclick=resetFactory;
+$("saveMaterials").onclick=saveMaterials;
+$("resetMaterials").onclick=resetMaterials;
+$("addMaterialBtn").onclick=addMaterial;
+$("productionOrderSelect").onchange=loadProductionForSelected;
+$("saveProduction").onclick=saveProduction;
+$("saveOrder").onclick=saveOrder;
+$("useCalculation").onclick=useCurrentCalculation;
+$("clearOrder").onclick=clearOrderForm;
+$("newOrderBtn").onclick=()=>{clearOrderForm();showOrderView("form");};
+$("orderListBtn").onclick=()=>showOrderView("list");
+$("exportOrders").onclick=exportOrders;
+$("clearOrders").onclick=clearAllOrders;
+$("themeBtn").onclick=()=>{document.body.classList.toggle("dark");$("themeBtn").textContent=document.body.classList.contains("dark")?"🌙":"☀️";};
+loadMaterialDensities();
+renderMaterialDatabase();
+renderInkGlueTable();
+renderLayers();
+updateInputUI();
+loadFactoryPrices();
+$("orderDate").value=todayISO();
+renderOrders();
+
+</script>
+</body>
+</html>
