@@ -3,12 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0B4A5C">
+<meta name="theme-color" content="#1A1A18">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="FlexoCalculator">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="application-name" content="FlexoCalculator">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -78,6 +76,7 @@ body.dark .card.spine-orders{border-left-color:var(--cyan-deep)}
 .card.spine-production{border-left-color:var(--magenta)}
 .card.spine-reports{border-left-color:var(--cyan-deep)}
 body.dark .card.spine-reports{border-left-color:var(--amber)}
+.card.spine-sync{border-left-color:var(--ok)}
 
 /* ---------- Client report cards ---------- */
 .clientReport{border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin:11px 0;background:var(--card);box-shadow:var(--shadow)}
@@ -100,6 +99,9 @@ label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:0
 input,select{width:100%;height:46px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--input);color:var(--text);padding:0 12px;font-size:15.5px;outline:none;font-family:var(--font)}
 input:focus,select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 16%,transparent)}
 input::placeholder{color:color-mix(in srgb,var(--muted) 70%,transparent)}
+textarea{width:100%;min-height:120px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--input);color:var(--text);padding:10px 12px;font-size:12.5px;outline:none;font-family:var(--font-mono);line-height:1.5;resize:vertical}
+textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 16%,transparent)}
+.codeblock{display:block;background:color-mix(in srgb,var(--line) 40%,transparent);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin:8px 0;font-family:var(--font-mono);font-size:11px;white-space:pre-wrap;word-break:break-word;line-height:1.6;color:var(--text)}
 
 .layer{border:1px solid var(--line);border-radius:var(--radius-sm);padding:13px;margin-top:10px;background:color-mix(in srgb,var(--line) 20%,transparent)}
 .layerhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
@@ -190,6 +192,9 @@ body.dark .orderTitle .orderCust{color:var(--cyan)}
 }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div class="app">
@@ -216,6 +221,7 @@ body.dark .orderTitle .orderCust{color:var(--cyan)}
   <button class="navbtn" data-page="ordersPage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 3.5 H20 V20.5 L17.5 18.5 L15 20.5 L12.5 18.5 L10 20.5 L7.5 18.5 L5 20.5 L4 20.5 Z"/><line x1="7.5" y1="9" x2="16.5" y2="9"/><line x1="7.5" y1="13" x2="16.5" y2="13"/></svg>Orders</button>
   <button class="navbtn" data-page="productionPage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="4.3"/><circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none"/><path d="M11 11 L17.5 17.5"/><path d="M15.5 15.5 L20.5 15.5 L20.5 20.5 L15.5 20.5 Z"/></svg>Production</button>
   <button class="navbtn" data-page="reportsPage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 20.5 V3.5 H15.5 L19 7 V20.5 Z"/><path d="M15.5 3.5 V7 H19"/><polyline points="8,16.5 10.5,12.5 13,14.5 16,9.5" stroke-width="1.6"/></svg>Reports</button>
+  <button class="navbtn" data-page="syncPage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7.5 18 a4.3 4.3 0 0 1 -1-8.5 5.3 5.3 0 0 1 10.3-1.7 3.8 3.8 0 0 1 -0.6 10.2 Z"/><path d="M12 10.5 V17" stroke-width="1.6"/><polyline points="9.3,13.2 12,10.5 14.7,13.2" stroke-width="1.6"/></svg>Sync</button>
 </nav>
 
 
@@ -464,6 +470,66 @@ body.dark .orderTitle .orderCust{color:var(--cyan)}
 <div id="clientReports"></div>
 </div>
 
+<div id="syncPage" class="page">
+<section class="card spine-sync">
+  <h2>Cloud Sync</h2>
+  <div class="section-desc">Connect a free Firebase project once, then sign in with the same account on your iPhone and your desktop to share one live database between them — materials, factory settings, orders and production all included.</div>
+
+  <div class="note">
+    <b>One-time setup (about 10 minutes):</b><br>
+    1. Go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener">console.firebase.google.com</a> and create a free project.<br>
+    2. Open <b>Build → Authentication → Sign-in method</b> and enable <b>Email/Password</b>.<br>
+    3. Open <b>Build → Firestore Database</b>, click <b>Create database</b> (production mode is fine), then open its <b>Rules</b> tab and paste this, then click <b>Publish</b>:
+    <span class="codeblock">rules_version='2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid}/{doc=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}</span>
+    4. Open <b>Project settings → General</b>, scroll to "Your apps", click the <b>&lt;/&gt; (Web)</b> icon to register a web app, and copy the <code>firebaseConfig</code> object it shows you.<br>
+    5. Paste that config below on this device, then repeat steps 4–5 on your other device using the exact same config.
+  </div>
+
+  <div class="field">
+    <label>Firebase config</label>
+    <textarea id="firebaseConfigInput" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea>
+  </div>
+  <div class="actions">
+    <button class="savebtn" id="saveFirebaseConfig">Save configuration</button>
+    <button class="dangerbtn hidden" id="clearFirebaseConfig">Disconnect</button>
+  </div>
+  <div id="syncConfigMessage" class="note hidden"></div>
+</section>
+
+<section class="card spine-sync hidden" id="syncAuthCard">
+  <h2>Sign in</h2>
+  <div class="section-desc">Use the same email and password on every device you want kept in sync.</div>
+  <div class="grid">
+    <div class="field"><label>Email</label><input id="syncEmail" type="email" placeholder="you@company.com"></div>
+    <div class="field"><label>Password</label><input id="syncPassword" type="password" placeholder="At least 6 characters"></div>
+  </div>
+  <div class="actions">
+    <button class="calculate" id="syncSignIn" style="width:auto;padding:0 18px">Sign in</button>
+    <button class="savebtn" id="syncSignUp">Create account</button>
+  </div>
+  <div id="syncAuthMessage" class="note hidden"></div>
+</section>
+
+<section class="card spine-sync hidden" id="syncStatusCard">
+  <h2>Sync status</h2>
+  <div class="cost-result">
+    <div class="cost-card"><small>Signed in as</small><strong id="syncUserEmail">—</strong></div>
+    <div class="cost-card"><small>Status</small><strong id="syncStatusText">—</strong></div>
+  </div>
+  <div class="actions" style="margin-top:12px">
+    <button class="savebtn" id="syncNow">Sync now</button>
+    <button class="dangerbtn" id="syncSignOut">Sign out</button>
+  </div>
+</section>
+</div>
+
 <div id="settingsPage" class="page">
 <section class="card">
   <h2>Calculation basis</h2>
@@ -489,6 +555,216 @@ let lastCostCalc=null;
 const $=id=>document.getElementById(id);
 const num=id=>parseFloat($(id).value);
 const money=v=>`${(Number(v)||0).toFixed(2)} ${($("currency").value||"DA").trim()}`;
+
+/* ========================================================
+   Cloud sync (optional) — Firebase Auth + Firestore
+   Mirrors every "fc_" localStorage key to a per-account
+   Firestore document, so the same account sees the same
+   data on every device. Nothing here runs unless the user
+   pastes their own Firebase project config and signs in.
+   ======================================================== */
+let fbApp=null, fbAuth=null, fbDb=null, fbUser=null, fbUnsub=null;
+let applyingRemoteState=false, lastPushedBlob=null, pushTimer=null;
+
+const deviceId=(()=>{
+  let id=localStorage.getItem("fcsync_device");
+  if(!id){ id="dev-"+Math.random().toString(36).slice(2,10); localStorage.setItem("fcsync_device",id); }
+  return id;
+})();
+
+const _origSetItem=localStorage.setItem.bind(localStorage);
+const _origRemoveItem=localStorage.removeItem.bind(localStorage);
+localStorage.setItem=function(key,value){
+  _origSetItem(key,value);
+  if(!applyingRemoteState && key && key.startsWith("fc_")) schedulePush();
+};
+localStorage.removeItem=function(key){
+  _origRemoveItem(key);
+  if(!applyingRemoteState && key && key.startsWith("fc_")) schedulePush();
+};
+
+function collectAppState(){
+  const state={};
+  for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i);
+    if(key && key.startsWith("fc_")) state[key]=localStorage.getItem(key);
+  }
+  return state;
+}
+
+function applyAppState(remote){
+  applyingRemoteState=true;
+  try{
+    const currentKeys=[];
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key && key.startsWith("fc_")) currentKeys.push(key);
+    }
+    currentKeys.forEach(key=>{ if(!(key in remote)) _origRemoveItem(key); });
+    Object.entries(remote).forEach(([key,value])=>_origSetItem(key,value));
+  } finally {
+    applyingRemoteState=false;
+  }
+  refreshAllFromStorage();
+}
+
+function refreshAllFromStorage(){
+  customMaterials=loadCustomMaterials();
+  loadMaterialDensities();
+  renderMaterialDatabase();
+  renderInkGlueTable();
+  renderLayers();
+  if(lastCalc) calculate();
+  loadFactoryPrices();
+  savedOrders=JSON.parse(localStorage.getItem("fc_orders")||"[]");
+  renderOrders();
+  const activePage=document.querySelector(".page.active")?.id;
+  if(activePage==="productionPage"){ renderProductionOrderSelect(); renderProductionList(); }
+  if(activePage==="reportsPage"){ renderReports(); }
+}
+
+function schedulePush(){
+  if(!fbUser||!fbDb)return;
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(pushStateNow,700);
+}
+
+function pushStateNow(){
+  if(!fbUser||!fbDb)return;
+  const blob=JSON.stringify(collectAppState());
+  if(blob===lastPushedBlob)return;
+  lastPushedBlob=blob;
+  setSyncStatus("Syncing…");
+  fbDb.collection("users").doc(fbUser.uid).collection("app").doc("state").set({
+    blob, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), device: deviceId
+  }).then(()=>setSyncStatus("Synced just now"))
+    .catch(err=>setSyncStatus("Sync error: "+err.message));
+}
+
+function setSyncStatus(text){
+  const el=$("syncStatusText");
+  if(el)el.textContent=text;
+}
+
+function loadFirebaseConfig(){
+  try{
+    const raw=localStorage.getItem("fcsync_config");
+    return raw?JSON.parse(raw):null;
+  }catch(e){ return null; }
+}
+
+function initFirebaseIfConfigured(){
+  const config=loadFirebaseConfig();
+  if(!config)return;
+  $("firebaseConfigInput").value=JSON.stringify(config,null,2);
+  $("clearFirebaseConfig").classList.remove("hidden");
+  try{
+    if(typeof firebase==="undefined")throw new Error("Firebase library didn't load (check your internet connection).");
+    fbApp=firebase.apps.length?firebase.app():firebase.initializeApp(config);
+    fbAuth=firebase.auth();
+    fbDb=firebase.firestore();
+  }catch(e){
+    showSyncConfigMessage("Couldn't connect with this configuration: "+e.message,"error");
+    return;
+  }
+  $("syncAuthCard").classList.remove("hidden");
+  fbAuth.onAuthStateChanged(user=>{
+    fbUser=user;
+    if(user){
+      $("syncAuthCard").classList.add("hidden");
+      $("syncStatusCard").classList.remove("hidden");
+      $("syncUserEmail").textContent=user.email||"Signed in";
+      setSyncStatus("Connecting…");
+      subscribeToCloud(user.uid);
+    }else{
+      $("syncAuthCard").classList.remove("hidden");
+      $("syncStatusCard").classList.add("hidden");
+      if(fbUnsub){ fbUnsub(); fbUnsub=null; }
+    }
+  });
+}
+
+function subscribeToCloud(uid){
+  if(fbUnsub){ fbUnsub(); fbUnsub=null; }
+  const ref=fbDb.collection("users").doc(uid).collection("app").doc("state");
+  fbUnsub=ref.onSnapshot(snap=>{
+    if(!snap.exists){
+      pushStateNow();
+      setSyncStatus("Synced just now (first upload from this device)");
+      return;
+    }
+    const data=snap.data();
+    if(!data||!data.blob)return;
+    if(data.blob===lastPushedBlob){ setSyncStatus("Synced"); return; }
+    if(data.device===deviceId){ lastPushedBlob=data.blob; setSyncStatus("Synced"); return; }
+    try{
+      applyAppState(JSON.parse(data.blob));
+      lastPushedBlob=data.blob;
+      setSyncStatus("Updated just now from another device");
+    }catch(e){ console.error("Bad remote sync data",e); }
+  }, err=>setSyncStatus("Sync error: "+err.message));
+}
+
+function showSyncConfigMessage(message,type){
+  const el=$("syncConfigMessage");
+  el.classList.remove("hidden","error","ok");
+  el.classList.add(type==="error"?"error":"ok");
+  el.textContent=message;
+}
+function showSyncAuthMessage(message,type){
+  const el=$("syncAuthMessage");
+  el.classList.remove("hidden","error","ok");
+  el.classList.add(type==="error"?"error":"ok");
+  el.textContent=message;
+}
+
+function saveFirebaseConfigFromInput(){
+  const raw=$("firebaseConfigInput").value.trim();
+  if(!raw)return showSyncConfigMessage("Paste your firebaseConfig object first.","error");
+  const match=raw.match(/\{[\s\S]*\}/);
+  const objText=match?match[0]:raw;
+  let parsed;
+  try{
+    parsed=new Function("return ("+objText+")")();
+  }catch(e){
+    return showSyncConfigMessage("Couldn't read that configuration — paste the exact firebaseConfig object shown by Firebase.","error");
+  }
+  if(!parsed||!parsed.apiKey||!parsed.projectId){
+    return showSyncConfigMessage("That doesn't look like a complete firebaseConfig object — it should include apiKey and projectId.","error");
+  }
+  localStorage.setItem("fcsync_config",JSON.stringify(parsed));
+  showSyncConfigMessage("Configuration saved. Create an account or sign in below.","ok");
+  initFirebaseIfConfigured();
+}
+
+function clearFirebaseConfig(){
+  if(!confirm("Disconnect cloud sync on this device? Your local data stays here, but it will stop syncing until you reconnect."))return;
+  if(fbUnsub){ fbUnsub(); fbUnsub=null; }
+  if(fbAuth)fbAuth.signOut().catch(()=>{});
+  localStorage.removeItem("fcsync_config");
+  fbApp=null;fbAuth=null;fbDb=null;fbUser=null;lastPushedBlob=null;
+  $("firebaseConfigInput").value="";
+  $("syncAuthCard").classList.add("hidden");
+  $("syncStatusCard").classList.add("hidden");
+  $("clearFirebaseConfig").classList.add("hidden");
+  showSyncConfigMessage("Disconnected. This device will no longer sync.","ok");
+}
+
+function syncSignUp(){
+  if(!fbAuth)return;
+  const email=$("syncEmail").value.trim(), pass=$("syncPassword").value;
+  if(!email||pass.length<6)return showSyncAuthMessage("Enter an email and a password of at least 6 characters.","error");
+  fbAuth.createUserWithEmailAndPassword(email,pass).catch(err=>showSyncAuthMessage(err.message,"error"));
+}
+function syncSignIn(){
+  if(!fbAuth)return;
+  const email=$("syncEmail").value.trim(), pass=$("syncPassword").value;
+  if(!email||!pass)return showSyncAuthMessage("Enter your email and password.","error");
+  fbAuth.signInWithEmailAndPassword(email,pass).catch(err=>showSyncAuthMessage(err.message,"error"));
+}
+function syncSignOutNow(){
+  if(fbAuth)fbAuth.signOut();
+}
 
 const defaultMaterials = {
   "opp":      {name:"OPP", density:0.91, price:0},
@@ -1373,17 +1649,6 @@ function printOrdersFallback(rows){
     </tbody>
   </table>
   <div class="foot">Total quantity: ${totalKg.toFixed(2)} kg across ${rows.length} order${rows.length===1?"":"s"}.</div>
-
-<script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(err => {
-      console.warn("FlexoCalculator offline support could not be enabled:", err);
-    });
-  });
-}
-</script>
-
 </body></html>`;
 
   const iframe=document.createElement("iframe");
@@ -1487,6 +1752,12 @@ $("orderListBtn").onclick=()=>showOrderView("list");
 $("exportOrders").onclick=exportOrders;
 $("clearOrders").onclick=clearAllOrders;
 $("themeBtn").onclick=()=>{document.body.classList.toggle("dark");$("themeBtn").textContent=document.body.classList.contains("dark")?"🌙":"☀️";};
+$("saveFirebaseConfig").onclick=saveFirebaseConfigFromInput;
+$("clearFirebaseConfig").onclick=clearFirebaseConfig;
+$("syncSignUp").onclick=syncSignUp;
+$("syncSignIn").onclick=syncSignIn;
+$("syncSignOut").onclick=syncSignOutNow;
+$("syncNow").onclick=()=>{lastPushedBlob=null;pushStateNow();};
 loadMaterialDensities();
 renderMaterialDatabase();
 renderInkGlueTable();
@@ -1495,18 +1766,14 @@ updateInputUI();
 loadFactoryPrices();
 $("orderDate").value=todayISO();
 renderOrders();
+initFirebaseIfConfigured();
 
-</script>
-
-<script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(err => {
-      console.warn("FlexoCalculator offline support could not be enabled:", err);
-    });
+if("serviceWorker" in navigator && location.protocol!=="file:"){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("service-worker.js").catch(()=>{});
   });
 }
-</script>
 
+</script>
 </body>
 </html>
