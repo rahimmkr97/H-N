@@ -1933,8 +1933,31 @@ function generateFicheProductionPdf(order){
   text(M,y,"H&N PACKAGING — Système Qualité — Bilan des Pertes Matière",6.8,false,[120,120,120]);
   text(M+CW,y,"Page 1/1",6.8,false,[120,120,120],"right");
 
-  const safeOF=(order.orderNumber||"OF").replace(/[^a-zA-Z0-9_-]+/g,"_");
-  doc.save(`Fiche_Production_${safeOF}.pdf`);
+  const clean=t=>String(t||"").replace(/[\\\/:*?"<>|]+/g,"_").replace(/\s+/g," ").trim();
+  const fname=[clean(order.orderNumber)||"OF",clean(order.customer)].filter(Boolean).join(" - ")+".pdf";
+  savePdfWithPicker(doc,fname);
+}
+
+// Desktop Chrome/Edge: let the user pick the folder (remembered for next time).
+// iPhone/Safari/Firefox can't do that, so they fall back to a normal download.
+async function savePdfWithPicker(doc,fname){
+  if(window.showSaveFilePicker){
+    try{
+      const handle=await window.showSaveFilePicker({
+        id:"hn-fiche-pdf",
+        suggestedName:fname,
+        types:[{description:"PDF",accept:{"application/pdf":[".pdf"]}}]
+      });
+      const w=await handle.createWritable();
+      await w.write(doc.output("blob"));
+      await w.close();
+      return;
+    }catch(e){
+      if(e&&e.name==="AbortError")return; // user cancelled
+      console.warn("Save picker failed, falling back to download",e);
+    }
+  }
+  doc.save(fname);
 }
 
 function printOrdersFallback(rows){
