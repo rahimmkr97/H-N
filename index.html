@@ -364,7 +364,7 @@ body.dark .orderTitle .orderCust{color:var(--cyan)}
   <div class="grid">
     <div class="field">
       <label>Order number</label>
-      <input id="orderNumber" type="text" placeholder="e.g. 2026-001">
+      <input id="orderNumber" type="text" placeholder="e.g. 1/2026">
     </div>
     <div class="field">
       <label>Date</label>
@@ -479,6 +479,10 @@ body.dark .orderTitle .orderCust{color:var(--cyan)}
 <section class="card spine-production">
   <h2>Production List</h2>
   <div class="section-desc">Orders with production recorded so far, most recent first.</div>
+  <div class="field">
+    <label>Search by order code or client name</label>
+    <input id="productionSearch" type="text" placeholder="e.g. 3/2026 or Societe ABC">
+  </div>
   <div id="productionList"><div class="note">Nothing logged yet.</div></div>
 </section>
 </div>
@@ -641,6 +645,7 @@ function refreshAllFromStorage(){
   loadFactoryPrices();
   savedOrders=JSON.parse(localStorage.getItem("fc_orders")||"[]");
   renderOrders();
+  fillNextOrderNumber();
   const activePage=document.querySelector(".page.active")?.id;
   if(activePage==="productionPage"){ renderProductionOrderSelect(); }
   if(activePage==="productionListPage"){ renderProductionList(); }
@@ -1165,6 +1170,7 @@ function saveOrder(){
   localStorage.setItem("fc_orders",JSON.stringify(savedOrders));
   renderOrders();
   showOrderMessage("Order saved — its Fiche de Production PDF is downloading now.","ok");
+  fillNextOrderNumber();
   try{ generateFicheProductionPdf(order); }catch(e){ console.error(e); }
 }
 
@@ -1186,12 +1192,36 @@ function useCurrentCalculation(){
   showOrderMessage("Current calculation added to the order (width, structure & quantity).","ok");
 }
 
+let lastAutoOrderNumber="";
+function nextOrderNumber(){
+  const year=String(($("orderDate")?.value||todayISO()).slice(0,4));
+  let max=0;
+  savedOrders.forEach(o=>{
+    const m=String(o.orderNumber||"").trim().match(/^(\d+)\s*\/\s*(\d{4})$/);
+    if(m&&m[2]===year)max=Math.max(max,parseInt(m[1],10));
+  });
+  return `${max+1}/${year}`;
+}
+// Fills the order code with the next number (N/YYYY) unless the user typed their own.
+function fillNextOrderNumber(){
+  const el=$("orderNumber");
+  if(!el)return;
+  const cur=el.value.trim();
+  const used=savedOrders.some(o=>String(o.orderNumber||"").trim()===cur);
+  if(cur===""||cur===lastAutoOrderNumber||used){
+    lastAutoOrderNumber=nextOrderNumber();
+    el.value=lastAutoOrderNumber;
+  }
+}
+
 function clearOrderForm(){
   ["orderNumber","customerName","productName","productRef","orderWidth","orderWidthUtile","orderStructureInput","orderQuantity","orderQuantityM","orderPas","orderDevel","orderNotes"].forEach(id=>$(id).value="");
   $("orderDate").value=todayISO();
   $("orderMessage").classList.add("hidden");
   $("orderRollDir").value="";
   renderRollDirPicker(null);
+  lastAutoOrderNumber="";
+  fillNextOrderNumber();
 }
 
 function renderRollDirPicker(selected){
@@ -1441,8 +1471,11 @@ function renderProductionStats(order){
 
 function renderProductionList(){
   const box=$("productionList");
-  const logged=savedOrders.filter(o=>o.production);
-  if(!logged.length){box.innerHTML='<div class="note">Nothing logged yet.</div>';return;}
+  const q=($("productionSearch")?.value||"").trim().toLowerCase();
+  const allLogged=savedOrders.filter(o=>o.production);
+  const logged=q?allLogged.filter(o=>(o.orderNumber||"").toLowerCase().includes(q)||(o.customer||"").toLowerCase().includes(q)):allLogged;
+  if(!allLogged.length){box.innerHTML='<div class="note">Nothing logged yet.</div>';return;}
+  if(!logged.length){box.innerHTML='<div class="note">No logged orders match that search.</div>';return;}
   box.innerHTML=logged.map(o=>{
     const s=computeProductionStats(o)||{};
     return `<div class="orderItem">
@@ -1451,7 +1484,7 @@ function renderProductionList(){
           <div class="orderTitle">${escapeHtml(o.orderNumber)}<span class="dot">•</span><span class="orderCust">${escapeHtml(o.customer||"No customer")}</span></div>
           <div class="orderMeta">${o.production.updatedAt?"Logged "+new Date(o.production.updatedAt).toLocaleDateString():""}</div>
         </div>
-        <button class="savebtn" style="height:38px" onclick="generateFicheProductionPdf(savedOrders.find(x=>x.id===${o.id}))">Fiche PDF</button>
+        <button class="savebtn" style="height:38px" onclick="generateFicheProductionPdf(savedOrders.find(x=>x.id===${o.id}))">Save PDF</button>
       </div>
       <div class="orderGrid">
         <div class="orderStat"><small>Printed</small><b>${(o.production.printedM||0).toFixed(2)} m</b></div>
@@ -2107,6 +2140,7 @@ $("newOrderBtn").onclick=()=>{clearOrderForm();showOrderView("form");};
 $("orderListBtn").onclick=()=>showOrderView("list");
 $("exportOrders").onclick=exportOrders;
 $("orderSearch").oninput=renderOrders;
+$("productionSearch").oninput=renderProductionList;
 $("clearOrders").onclick=clearAllOrders;
 $("themeBtn").onclick=()=>{document.body.classList.toggle("dark");$("themeBtn").textContent=document.body.classList.contains("dark")?"🌙":"☀️";};
 $("saveFirebaseConfig").onclick=saveFirebaseConfigFromInput;
@@ -2123,6 +2157,8 @@ updateInputUI();
 loadFactoryPrices();
 $("orderDate").value=todayISO();
 renderRollDirPicker(null);
+fillNextOrderNumber();
+$("orderDate").onchange=fillNextOrderNumber;
 renderOrders();
 initFirebaseIfConfigured();
 
