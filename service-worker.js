@@ -1,6 +1,10 @@
 // FlexoCalculator — offline app-shell cache.
 // Bump CACHE_NAME whenever index.html changes so installed devices pick up the update.
+<<<<<<< HEAD
 const CACHE_NAME = "flexocalculator-v9";
+=======
+const CACHE_NAME = "flexocalculator-v8";
+>>>>>>> 685e5aef7a734a5ec59c7ca4ccc05b953897228d
 const SHELL_FILES = [
   "./",
   "./index.html",
