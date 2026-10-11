@@ -1,6 +1,6 @@
 // FlexoCalculator — offline app-shell cache.
 // Bump CACHE_NAME whenever index.html changes so installed devices pick up the update.
-const CACHE_NAME = "flexocalculator-v8";
+const CACHE_NAME = "flexocalculator-v10";
 const SHELL_FILES = [
   "./",
   "./index.html",
@@ -37,7 +37,7 @@ self.addEventListener("fetch", (event) => {
   if (!isShellRequest) return; // let cross-origin requests (fonts/CDN/Firestore) go straight to the network
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
+    caches.match(event.request, event.request.mode === "navigate" ? { ignoreSearch: true } : undefined).then((cached) => {
       const network = fetch(event.request)
         .then((response) => {
           if (response && response.ok) {
