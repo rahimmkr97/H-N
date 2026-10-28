@@ -2609,7 +2609,7 @@ function saveProduction(){
   localStorage.setItem("fc_orders",JSON.stringify(savedOrders));
   const el=$("productionMessage");
   el.classList.remove("hidden","error");el.classList.add("ok");
-  el.textContent="Production saved for this order.";
+  el.textContent="Production saved for this order. You can keep editing and press Save production again.";
   renderProductionStats(order);
   renderProductionOrderSelect();
   $("productionOrderSelect").value=id;
@@ -2666,13 +2666,17 @@ function renderProductionList(){
           <div class="orderMeta"><span>${o.production.updatedAt?"Logged "+new Date(o.production.updatedAt).toLocaleDateString():""}</span> ${phaseBadge(o)}</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+          <button class="savebtn" style="height:38px" onclick="openProduction(${o.id})">Edit</button>
           <button class="savebtn" style="height:38px" onclick="generateFicheProductionPdf(savedOrders.find(x=>x.id===${o.id}))">Save PDF</button>
           <button class="dangerbtn" onclick="deleteProduction(${o.id})">Delete</button>
         </div>
       </div>
       <div class="orderGrid">
         <div class="orderStat"><small>Printed</small><b>${(o.production.printedM||0).toFixed(2)} m</b></div>
+        <div class="orderStat"><small>Laminated</small><b>${o.production.laminatedM?o.production.laminatedM.toFixed(2)+" m":"—"}</b></div>
         <div class="orderStat"><small>Slit</small><b>${(o.production.slittedM||0).toFixed(2)} m</b></div>
+        <div class="orderStat"><small>Printing waste</small><b>${(o.production.printWasteM||0).toFixed(2)} m</b></div>
+        <div class="orderStat"><small>Finished weight</small><b>${o.production.actualWeightKg?o.production.actualWeightKg.toFixed(2)+" kg":"—"}</b></div>
         <div class="orderStat"><small>Total waste</small><b>${(s.totalWasteM||0).toFixed(2)} m</b></div>
         <div class="orderStat"><small>Waste cost</small><b>${s.wasteCost?money(s.wasteCost):"—"}</b></div>
       </div>
