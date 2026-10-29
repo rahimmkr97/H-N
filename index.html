@@ -104,6 +104,9 @@ h2{font-size:16px;margin:0 0 4px;font-weight:800;letter-spacing:-.1px}
 .prodChip.active{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--input))}
 #productionList .orderGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
 .prodDone .prodBody{display:none}.prodDone .orderHead{cursor:pointer}
+.prodNext{border:2px solid var(--cyan);border-radius:var(--radius-sm);padding:10px;background:color-mix(in srgb,var(--cyan) 7%,var(--input));margin-top:8px}
+.prodNextT{font-weight:800;font-size:13px;margin-bottom:6px}
+.prodUse{border:0;background:none;color:var(--cyan);font-weight:700;font-size:12px;padding:4px 0;cursor:pointer;text-align:left}
 .prodFlash{box-shadow:0 0 0 3px var(--cyan)!important}
 .ptypeBtn{flex:1;min-height:44px;border:2px solid var(--line);border-radius:var(--radius-sm);background:var(--input);color:var(--text,inherit);font-weight:700;cursor:pointer}
 .ptypeBtn.active{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 12%,var(--input))}
@@ -2676,7 +2679,7 @@ function setProdFlag(id,flag,on){
   const b=orderPhase(o);
   if(on)delete o[flag]; else o[flag]=false;
   if(orderPhase(o)!==b)o.phaseAt=new Date().toISOString();
-  saveOrdersLS(); refreshProdCard(id);
+  saveOrdersLS(); refreshProdCard(id); prodRerender(id);
 }
 
 function deleteProduction(id){
@@ -2702,46 +2705,84 @@ function prodStatsHtml(o){
 }
 function prodBadgeHtml(o){ const w=orderPhase(o)==="done"?"":waitText(o); return phaseBadge(o)+(w?` <small style="color:var(--muted)">${w}</small>`:""); }
 function prodApplies(o,k){ return !((k==="printedM"&&o.printing===false)||(k==="laminatedM"&&getOrderLayerCount(o)<=1)||(k==="slittedM"&&o.slitting===false)); }
+const PROD_STAGE={toPrint:["printedM","printWasteM"],toLaminate:["laminatedM"],toSlit:["slittedM","actualWeightKg"]};
+const PROD_STAGE_LABEL={toPrint:"Next step: log printing",toLaminate:"Next step: log lamination",toSlit:"Next step: log slitting"};
+const prodAll=new Set();
+function prodPlanned(o,k){
+  if(k==="actualWeightKg")return getOrderPlannedWeightKg(o)||0;
+  if(k==="printWasteM")return 0;
+  return getOrderPlannedLengthM(o)||0;
+}
+function prodFieldHtml(o,k,big){
+  const l=(PROD_FIELDS.find(f=>f[0]===k)||[k,k])[1], p=(o.production||{})[k]||"", pl=prodPlanned(o,k);
+  return `<label class="orderStat" data-pw="${k}" style="${prodApplies(o,k)?"":"display:none"}"><small>${l}</small>
+    <input type="number" inputmode="decimal" min="0" step="0.01" data-pf="${k}" value="${p}" placeholder="${pl?pl.toFixed(0):""}" style="width:100%;height:${big?52:40}px;${big?"font-size:20px;font-weight:700":""}" onchange="setProdField(${o.id},'${k}',this.value)">
+    ${pl?`<button type="button" tabindex="-1" class="prodUse" onclick="prodUsePlanned(${o.id},'${k}',this)">= planned (${pl.toFixed(0)})</button>`:""}</label>`;
+}
 function prodCardHtml(o){
-  const noPrint=o.printing===false, noSlit=o.slitting===false, p=o.production||{};
+  const noPrint=o.printing===false, noSlit=o.slitting===false;
   const kg=getOrderPlannedWeightKg(o), m=getOrderPlannedLengthM(o);
-  const ph=orderPhase(o), done=ph==="done"&&!prodOpenDone.has(o.id);
-  const ph_={printedM:m?m.toFixed(0):"",laminatedM:m?m.toFixed(0):"",slittedM:m?m.toFixed(0):"",printWasteM:"",actualWeightKg:kg?kg.toFixed(0):""};
-  const inputs=PROD_FIELDS.map(([k,l])=>`<label class="orderStat" data-pw="${k}" style="${prodApplies(o,k)?"":"display:none"}"><small>${l}</small><input type="number" inputmode="decimal" min="0" step="0.01" data-pf="${k}" value="${p[k]||""}" placeholder="${ph_[k]}" style="width:100%;height:40px" onchange="setProdField(${o.id},'${k}',this.value)"></label>`).join("");
-  return `<div class="orderItem${done?" prodDone":""}" data-oid="${o.id}">
+  const ph=orderPhase(o), isDone=ph==="done", collapsed=isDone&&!prodOpenDone.has(o.id);
+  const stage=PROD_STAGE[ph]||[];
+  const others=PROD_FIELDS.map(f=>f[0]).filter(k=>!stage.includes(k));
+  const showAll=prodAll.has(o.id)||(isDone&&!collapsed);
+  return `<div class="orderItem${collapsed?" prodDone":""}" data-oid="${o.id}" data-ph="${ph}" onfocusout="prodCardBlur(event,${o.id})">
     <div class="orderHead" onclick="prodToggleDone(event,${o.id})">
       <div>
         <div class="orderTitle">${escapeHtml(o.orderNumber)}<span class="dot">•</span><span class="orderCust">${escapeHtml(o.customer||"No customer")}</span></div>
-        <div class="orderMeta">${escapeHtml(o.product||"")}${o.product?" • ":""}<span>${escapeHtml(o.date||"")}</span></div>
+        <div class="orderMeta">${escapeHtml(o.product||"")}${o.product?" • ":""}${kg?kg.toFixed(0)+" kg":""}${kg&&m?" • ":""}${m?m.toFixed(0)+" m":""}</div>
         <div class="orderMeta prodBadge">${prodBadgeHtml(o)}</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-        <button class="savebtn" style="height:38px" onclick="event.stopPropagation();generateFicheProductionPdf(savedOrders.find(x=>x.id===${o.id}))">Save PDF</button>
-        ${o.production?`<button class="dangerbtn" onclick="event.stopPropagation();deleteProduction(${o.id})">Clear values</button>`:""}
+        <button class="savebtn" style="height:38px" onclick="event.stopPropagation();generateFicheProductionPdf(savedOrders.find(x=>x.id===${o.id}))">PDF</button>
       </div>
     </div>
+    <div class="prodStats">${prodStatsHtml(o)}</div>
     <div class="prodBody">
-      <div class="orderMeta">Planned: ${kg?kg.toFixed(2)+" kg":"—"} • ${m?m.toFixed(2)+" m":"—"} • ${escapeHtml(o.structure||(o.calculation&&o.calculation.structure)||"No structure recorded")}</div>
-      <div style="display:flex;gap:18px;flex-wrap:wrap;margin:8px 0 2px">
-        <label style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" data-pflag="printing" ${noPrint?"":"checked"} style="width:auto;height:auto" onchange="setProdFlag(${o.id},'printing',this.checked)"> Needs printing</label>
-        <label style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" data-pflag="slitting" ${noSlit?"":"checked"} style="width:auto;height:auto" onchange="setProdFlag(${o.id},'slitting',this.checked)"> Needs slitting</label>
+      ${stage.length?`<div class="prodNext"><div class="prodNextT">${PROD_STAGE_LABEL[ph]}</div><div class="orderGrid">${stage.map(k=>prodFieldHtml(o,k,true)).join("")}</div></div>`:""}
+      ${stage.length?`<button type="button" class="savebtn" style="height:36px;margin-top:8px" onclick="prodToggleAll(${o.id})">${showAll?"Hide other values":"Other values & options"}</button>`:""}
+      <div class="prodAllBox" style="display:${showAll?"block":"none"}">
+        <div class="orderMeta" style="margin-top:8px">${escapeHtml(o.structure||(o.calculation&&o.calculation.structure)||"No structure recorded")}</div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;margin:8px 0 2px">
+          <label style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" data-pflag="printing" ${noPrint?"":"checked"} style="width:auto;height:auto" onchange="setProdFlag(${o.id},'printing',this.checked)"> Needs printing</label>
+          <label style="display:flex;gap:6px;align-items:center;font-weight:600"><input type="checkbox" data-pflag="slitting" ${noSlit?"":"checked"} style="width:auto;height:auto" onchange="setProdFlag(${o.id},'slitting',this.checked)"> Needs slitting</label>
+        </div>
+        <div class="orderGrid">${others.map(k=>prodFieldHtml(o,k,false)).join("")}</div>
+        ${o.production?`<button class="dangerbtn" style="margin-top:8px" onclick="deleteProduction(${o.id})">Clear values</button>`:""}
       </div>
-      <div class="orderGrid">${inputs}</div>
-      <div class="prodStats">${prodStatsHtml(o)}</div>
     </div>
   </div>`;
 }
 function prodToggleDone(ev,id){
-  const card=ev.currentTarget.closest(".orderItem"); if(!card||!card.classList.contains("prodDone")&&!prodOpenDone.has(id))return;
-  if(prodOpenDone.has(id)){ prodOpenDone.delete(id); card.classList.add("prodDone"); } else { prodOpenDone.add(id); card.classList.remove("prodDone"); }
+  const o=savedOrders.find(x=>x.id===id); if(!o||orderPhase(o)!=="done")return;
+  if(prodOpenDone.has(id))prodOpenDone.delete(id); else prodOpenDone.add(id);
+  prodRerender(id);
+}
+function prodToggleAll(id){ if(prodAll.has(id))prodAll.delete(id); else prodAll.add(id); prodRerender(id); }
+function prodRerender(id){
+  const o=savedOrders.find(x=>x.id===id), card=document.querySelector('#productionList .orderItem[data-oid="'+id+'"]'); if(!o||!card)return;
+  card.outerHTML=prodCardHtml(o); renderProdChips();
+}
+function prodCardBlur(ev,id){
+  const card=ev.currentTarget; setTimeout(()=>{
+    const o=savedOrders.find(x=>x.id===id); if(!o||!document.body.contains(card))return;
+    const ae=document.activeElement, box=ae&&ae.closest?ae.closest(".prodNext, .prodAllBox"):null;
+    if(box&&card.contains(box))return;
+    if(orderPhase(o)!==card.dataset.ph)prodRerender(id);
+  },0);
+}
+function prodUsePlanned(id,k,btn){
+  const o=savedOrders.find(x=>x.id===id); if(!o)return;
+  const v=prodPlanned(o,k); if(!v)return;
+  const inp=btn.parentElement.querySelector("input"); inp.value=v.toFixed(2).replace(/\.00$/,"");
+  setProdField(id,k,inp.value);
+  if(orderPhase(o)!==btn.closest(".orderItem").dataset.ph)prodRerender(id);
 }
 function refreshProdCard(id){
   const o=savedOrders.find(x=>x.id===id), card=document.querySelector('#productionList .orderItem[data-oid="'+id+'"]'); if(!o||!card)return;
   card.querySelector(".prodBadge").innerHTML=prodBadgeHtml(o);
   card.querySelector(".prodStats").innerHTML=prodStatsHtml(o);
   card.querySelectorAll("[data-pw]").forEach(l=>{ l.style.display=prodApplies(o,l.dataset.pw)?"":"none"; });
-  const bar=card.querySelector(".orderHead > div:last-child");
-  if(bar&&o.production&&!bar.querySelector(".dangerbtn")){ const b=document.createElement("button"); b.className="dangerbtn"; b.textContent="Clear values"; b.onclick=ev=>{ev.stopPropagation();deleteProduction(id);}; bar.appendChild(b); }
   renderProdChips();
 }
 function renderProdChips(){
