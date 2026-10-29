@@ -903,6 +903,11 @@ body.dark{
       <label>Slitting</label>
       <label style="display:flex;gap:8px;align-items:center;font-weight:600;min-height:44px"><input type="checkbox" id="orderSlitting" checked style="width:auto;height:auto"> This order needs slitting</label>
     </div>
+    <div class="field">
+      <label>Printing</label>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:600;min-height:44px"><input type="checkbox" id="orderPrinting" checked style="width:auto;height:auto"> This order needs printing</label>
+      <div class="hint">Turn this off for lamination-only orders: they go straight to "Waiting for lamination".</div>
+    </div>
   </div>
 
   <div class="field" style="margin-top:4px">
@@ -975,6 +980,7 @@ body.dark{
   <div id="productionForm" class="hidden">
     <div class="note" id="productionOrderSummary"></div>
     <div class="grid">
+      <div class="field"><label>Printing</label><label style="display:flex;gap:8px;align-items:center;font-weight:600;min-height:44px"><input type="checkbox" id="prodPrinting" checked style="width:auto;height:auto" onchange="setOrderPrinting(this.checked)"> This order needs printing</label><div class="hint">Turn this off for lamination-only orders.</div></div>
       <div class="field"><label>Printed (m)</label><input id="prodPrintedM" type="number" min="0" step="0.01" placeholder="e.g. 5100"></div>
       <div class="field"><label>Laminated (m)</label><input id="prodLaminatedM" type="number" min="0" step="0.01" placeholder="If more than one layer"><div class="hint" id="prodLamHint">Only relevant for duplex/triplex structures.</div></div>
       <div class="field"><label>Slitting</label><label style="display:flex;gap:8px;align-items:center;font-weight:600;min-height:44px"><input type="checkbox" id="prodSlitting" checked style="width:auto;height:auto" onchange="setOrderSlitting(this.checked)"> This order needs slitting</label><div class="hint">Turn this off if the product is finished after printing or lamination.</div></div>
@@ -2166,6 +2172,7 @@ function saveOrder(){
     printType:$("orderPrintType").value||null,
     notes:$("orderNotes").value.trim(),
     slitting:$("orderSlitting").checked?undefined:false,
+    printing:$("orderPrinting").checked?undefined:false,
     calculation:calc
   };
   if(!order.customer && !order.product){
@@ -2194,7 +2201,7 @@ function saveOrder(){
   try{ upsertFromOrder(order); }catch(e){ console.error(e); }
   renderOrders();
   showOrderMessage("Order saved — its Fiche de Production PDF is downloading now.","ok");
-  $("orderSlitting").checked=true;
+  $("orderSlitting").checked=true; $("orderPrinting").checked=true;
   fillNextOrderNumber();
   try{ generateFicheProductionPdf(order); }catch(e){ console.error(e); }
 }
@@ -2322,7 +2329,7 @@ function clearOrderForm(){
   $("orderRollDir").value="";
   renderRollDirPicker(null);
   $("orderPrintType").value=""; renderPrintTypePicker();
-  $("orderSlitting").checked=true;
+  $("orderSlitting").checked=true; $("orderPrinting").checked=true;
   editingOrderId=null; editRecalc=false;
   $("saveOrder").textContent="Save order"; $("cancelEditOrder").classList.add("hidden");
   lastAutoOrderNumber="";
@@ -2355,7 +2362,7 @@ function startEditOrder(id){
   set("customerName",o.customer); set("productName",o.product); set("productRef",o.reference);
   set("orderWidth",o.width); set("orderWidthUtile",o.widthUtile); set("orderStructureInput",o.structure||(o.calculation&&o.calculation.structure)||"");
   set("orderQuantity",o.quantity); set("orderQuantityM",o.quantityM); set("orderPas",o.pas); set("orderDevel",o.devel); set("orderNotes",o.notes);
-  $("orderSlitting").checked=o.slitting!==false;
+  $("orderSlitting").checked=o.slitting!==false; $("orderPrinting").checked=o.printing!==false;
   $("orderRollDir").value=(o.rollDir===null||o.rollDir===undefined)?"":String(o.rollDir);
   renderRollDirPicker($("orderRollDir").value===""?null:parseInt($("orderRollDir").value,10));
   $("orderPrintType").value=o.printType||""; renderPrintTypePicker();
@@ -2583,6 +2590,7 @@ function loadProductionForSelected(){
   $("prodPrintWasteM").value=p.printWasteM??"";
   $("prodActualWeight").value=p.actualWeightKg??"";
   $("prodSlitting").checked=order.slitting!==false; $("prodSlittedM").disabled=order.slitting===false;
+  $("prodPrinting").checked=order.printing!==false; $("prodPrintedM").disabled=order.printing===false;
 
   const plannedKg=getOrderPlannedWeightKg(order), plannedM=getOrderPlannedLengthM(order);
   $("productionOrderSummary").innerHTML=`<b>${escapeHtml(order.orderNumber)}</b> — ${escapeHtml(order.customer||"No customer")}<br>
@@ -3870,12 +3878,16 @@ function orderPhase(o){
   const p=o.production||{}, lam=getOrderLayerCount(o)>1;
   const sl=orderSlits(o);
   if(sl&&p.slittedM>0)return "done";
+  if(o.printing===false){
+    if(lam){ if(p.laminatedM>0)return sl?"toSlit":"done"; return "toLaminate"; }
+    return sl?"toSlit":"done";
+  }
   if(lam){ if(p.laminatedM>0)return sl?"toSlit":"done"; if(p.printedM>0)return "toLaminate"; return "toPrint"; }
   return p.printedM>0?(sl?"toSlit":"done"):"toPrint";
 }
 function phaseLabel(o){
   const k=orderPhase(o), lam=getOrderLayerCount(o)>1;
-  return k==="done"?"Done":k==="toPrint"?"To print":k==="toLaminate"?"Printed — waiting for lamination":(lam?"Laminated — waiting for slitting":"Printed — waiting for slitting");
+  return k==="done"?"Done":k==="toPrint"?"To print":k==="toLaminate"?(o.printing===false?"Waiting for lamination":"Printed — waiting for lamination"):(lam?"Laminated — waiting for slitting":(o.printing===false?"Waiting for slitting":"Printed — waiting for slitting"));
 }
 function phaseBadge(o){ return `<span class="phBadge ph-${orderPhase(o)}">${phaseLabel(o)}</span>`; }
 function phaseSince(o){ const p=o.production||{}; return o.phaseAt||(orderPhase(o)==="toPrint"?null:p.updatedAt)||(o.date?o.date+"T12:00:00":null); }
@@ -3888,7 +3900,7 @@ function renderWorkflow(){
   const box=$("wfBody"); if(!box)return;
   const q=($("wfSearch")?.value||"").trim().toLowerCase();
   const list=savedOrders.filter(o=>!q||(o.orderNumber||"").toLowerCase().includes(q)||(o.customer||"").toLowerCase().includes(q)||(o.product||"").toLowerCase().includes(q));
-  const cols=[["toPrint","To print"],["toLaminate","Printed — waiting for lamination"],["toSlit","Waiting for slitting"]];
+  const cols=[["toPrint","To print"],["toLaminate","Waiting for lamination"],["toSlit","Waiting for slitting"]];
   const card=o=>{ const kg=getOrderPlannedWeightKg(o), m=getOrderPlannedLengthM(o), w=waitText(o);
     return `<div class="wfCard"><div class="pcTop"><b>${escapeHtml(o.orderNumber)}</b></div><small>${escapeHtml(o.customer||"No customer")}</small>${o.product?`<small>${escapeHtml(o.product)}</small>`:""}
       <small>${kg?fmtN(kg,0)+" kg":""}${kg&&m?" • ":""}${m?fmtN(m,0)+" m":""}</small>${orderPhase(o)==="toSlit"?`<div style="margin-top:6px">${phaseBadge(o)}</div>`:""}${w?`<small>${w}</small>`:""}${o.planDate&&orderPhase(o)==="toPrint"?`<small>${escapeHtml(isoFmt(o.planDate,{day:"numeric",month:"short"}))}</small>`:""}
@@ -3900,6 +3912,14 @@ function renderWorkflow(){
   box.innerHTML+=`<h3 class="subH">Recently completed</h3>`+(done.length?`<div style="overflow-x:auto"><table class="table"><thead><tr><th>Order</th><th>Customer</th><th>Weight</th><th>Date</th></tr></thead><tbody>${done.map(o=>`<tr><td><b>${escapeHtml(o.orderNumber)}</b></td><td>${escapeHtml(o.customer||"No customer")}</td><td>${fmtN((o.production&&o.production.actualWeightKg)||getOrderPlannedWeightKg(o),0)} kg</td><td>${escapeHtml(((o.production||{}).updatedAt||"").slice(0,10))}</td></tr>`).join("")}</tbody></table></div>`:'<div class="note">No completed orders yet.</div>');
 }
 
+function setOrderPrinting(on){
+  const id=$("productionOrderSelect").value, o=savedOrders.find(x=>String(x.id)===String(id)); if(!o)return;
+  const b=orderPhase(o); if(on)delete o.printing; else o.printing=false;
+  if(orderPhase(o)!==b)o.phaseAt=new Date().toISOString();
+  $("prodPrintedM").disabled=!on; saveOrdersLS(); renderProductionStats(o);
+  try{ renderProductionList(); }catch(e){}
+  try{ renderOrders(); }catch(e){}
+}
 function setOrderSlitting(on){
   const id=$("productionOrderSelect").value, o=savedOrders.find(x=>String(x.id)===String(id)); if(!o)return;
   const b=orderPhase(o); if(on)delete o.slitting; else o.slitting=false;
